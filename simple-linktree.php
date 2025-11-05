@@ -116,7 +116,7 @@ class Simple_Linktree {
         }
         
         wp_enqueue_style('slt-admin-css', SIMPLE_LINKTREE_PLUGIN_URL . 'admin/css/admin.css', array(), SIMPLE_LINKTREE_VERSION);
-        wp_enqueue_script('slt-admin-js', SIMPLE_LINKTREE_PLUGIN_URL . 'admin/js/admin.js', array('jquery'), SIMPLE_LINKTREE_VERSION, true);
+        wp_enqueue_script('slt-admin-js', SIMPLE_LINKTREE_PLUGIN_URL . 'admin/js/admin.js', array('jquery', 'jquery-ui-sortable'), SIMPLE_LINKTREE_VERSION, true);
         
         wp_localize_script('slt-admin-js', 'sltAdmin', array(
             'ajax_url' => admin_url('admin-ajax.php'),

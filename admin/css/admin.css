@@ -161,6 +161,16 @@
     color: #2271b1;
 }
 
+.slt-settings-section .form-table {
+    width: 100%;
+}
+
+.slt-settings-section .form-table input,
+.slt-settings-section .form-table textarea {
+    max-width: 100%;
+    width: 100%;
+}
+
 @media (max-width: 768px) {
     .slt-admin-container {
         flex-direction: column;
