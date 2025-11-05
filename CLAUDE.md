@@ -356,7 +356,7 @@ Located in `simple-linktree.php` lines 27-37:
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
 $updateChecker = PucFactory::buildUpdateChecker(
-    'https://github.com/JensS/simple-linktree/',
+    'https://github.com/JensS/simple-link-tree/',
     __FILE__,
     'simple-linktree'
 );
@@ -499,7 +499,7 @@ Statistics section styles in `admin/css/admin.css` (lines 174-289):
 
 ## Repository Information
 
-- **GitHub**: https://github.com/JensS/simple-linktree
+- **GitHub**: https://github.com/JensS/simple-link-tree
 - **Update Branch**: master
 - **License**: GPL v2 or later
 - **Author**: Jens Sage (jens@jenssage.com)

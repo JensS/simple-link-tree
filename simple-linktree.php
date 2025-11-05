@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: Simple Linktree
- * Plugin URI: https://github.com/JensS/simple-linktree
+ * Plugin URI: https://github.com/JensS/simple-link-tree
  * Description: A minimalist Linktree-style page with dark/light mode support
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: Jens Sage
  * Author URI: https://www.jenssage.com
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SIMPLE_LINKTREE_VERSION', '1.1.0');
+define('SIMPLE_LINKTREE_VERSION', '1.1.1');
 define('SIMPLE_LINKTREE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SIMPLE_LINKTREE_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -28,7 +28,7 @@ require_once SIMPLE_LINKTREE_PLUGIN_DIR . 'vendor/autoload.php';
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
 $updateChecker = PucFactory::buildUpdateChecker(
-    'https://github.com/JensS/simple-linktree/',
+    'https://github.com/JensS/simple-link-tree/',
     __FILE__,
     'simple-linktree'
 );
