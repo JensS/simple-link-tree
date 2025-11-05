@@ -3,7 +3,7 @@
  * Plugin Name: Simple Linktree
  * Plugin URI: https://github.com/JensS/simple-linktree
  * Description: A minimalist Linktree-style page with dark/light mode support
- * Version: 1.0.1
+ * Version: 1.1.0
  * Author: Jens Sage
  * Author URI: https://www.jenssage.com
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SIMPLE_LINKTREE_VERSION', '1.0.1');
+define('SIMPLE_LINKTREE_VERSION', '1.1.0');
 define('SIMPLE_LINKTREE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SIMPLE_LINKTREE_PLUGIN_URL', plugin_dir_url(__FILE__));
 
