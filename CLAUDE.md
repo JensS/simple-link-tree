@@ -4,207 +4,502 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Simple Linktree** is a minimalist WordPress/ClassicPress plugin that creates a Linktree-style link-in-bio page with automatic dark/light mode detection based on browser preferences.
+Simple Linktree is a minimalist **ClassicPress plugin** that creates a "link-in-bio" style page with automatic dark/light mode support. The plugin **completely bypasses the theme** to render its own standalone template, ensuring consistent appearance across all installations.
 
-**Key Features:**
-- Custom URL slug for linktree page (e.g., `/links`, `/bio`)
-- Drag-and-drop link reordering using SortableJS
-- Auto dark/light mode via CSS `prefers-color-scheme`
-- Theme-independent rendering (bypasses WordPress theme)
-- AJAX-based link management
-- Icon support (emojis/unicode)
+**IMPORTANT**: This plugin is designed primarily for **ClassicPress**. WordPress compatibility is maintained where possible, but ClassicPress compatibility is the priority. Never use WordPress-specific features (like Gutenberg blocks) or deprecated libraries (like jQuery UI Sortable).
+
+**Current Version**: 1.0.1
 
 ## Architecture
 
-### Plugin Structure
+### Core Design Pattern
 
-This is a single-class WordPress plugin with a singleton pattern:
+The plugin uses a **singleton class pattern** with the main logic in `simple-linktree.php`. The architecture is built around three core concepts:
+
+1. **Custom Rewrite Rules**: WordPress URL routing intercepts the custom slug (default: `/links`) and triggers the plugin's template renderer
+2. **Theme Bypass**: Uses `template_redirect` hook to output HTML before the theme loads, then exits
+3. **Options-based Storage**: All data stored as JSON in WordPress `wp_options` table (no custom database tables)
+
+### Data Flow
 
 ```
-simple-linktree/
-├── simple-linktree.php          # Main plugin file (Simple_Linktree class)
-├── admin/
-│   ├── css/admin.css            # Admin UI styles
-│   ├── js/admin.js              # SortableJS integration, AJAX handlers
-│   └── views/admin-page.php     # Admin interface template
-└── public/
-    └── views/linktree-page.php  # Public-facing linktree template
+User visits /links → WordPress rewrite engine → Query var: simple_linktree=1
+→ template_redirect hook → render_linktree_page() → Load public template → Exit
 ```
 
-### Core Architecture (`simple-linktree.php`)
+```
+Admin saves links → AJAX request → Nonce validation → Sanitize data
+→ JSON encode → Update wp_options → Return success response
+```
 
-**Singleton Pattern:**
-- `Simple_Linktree::get_instance()` - Single instance throughout lifecycle
+### Key Components
 
-**WordPress Integration:**
-- **Rewrite Rules**: Creates custom URL endpoint at `/{slug}` via `add_rewrite_rule()`
-- **Query Vars**: Registers `simple_linktree` query var for routing
-- **Template Redirect**: Intercepts requests when `simple_linktree=1` and renders custom template
-- **Options API**: Stores data in WordPress options table:
-  - `slt_page_slug` - Custom URL slug (default: 'links')
-  - `slt_links` - JSON-encoded array of link objects
-  - `slt_profile_name` - Profile name displayed at top
-  - `slt_profile_bio` - Optional bio text
+| Component | File | Purpose |
+|-----------|------|---------|
+| Main Plugin Class | `simple-linktree.php` | Singleton, hooks, routing, AJAX handlers |
+| Admin Interface | `admin/views/admin-page.php` | Two-panel layout: settings + link management |
+| Admin JavaScript | `admin/js/admin.js` | SortableJS integration, AJAX, form handling |
+| Admin CSS | `admin/css/admin.css` | Responsive admin panel styling |
+| Public Template | `public/views/linktree-page.php` | Complete HTML document with embedded CSS |
 
-**AJAX Endpoints:**
-- `wp_ajax_slt_save_links` - Saves all links (order preserved)
-- `wp_ajax_slt_delete_link` - Deletes single link by ID
+## Important Technical Details
 
-### Data Model
+### SortableJS Dependency
 
-Links are stored as JSON in `slt_links` option:
+The plugin uses **SortableJS** (not jQuery UI Sortable) for drag-and-drop functionality. This is critical because ClassicPress deprecated jQuery UI Sortable.
 
 ```php
-[
-    {
-        "id": "link-1234567890",  // Unique ID (timestamp-based)
-        "title": "Link Title",
-        "url": "https://example.com",
-        "icon": "🔗"  // Optional emoji/unicode
-    }
-]
-```
-
-### Frontend Architecture
-
-**Theme Bypass:**
-- Uses `template_redirect` hook to completely bypass WordPress theme
-- Renders standalone HTML page with inline CSS
-- No theme dependencies - ensures consistent appearance
-
-**Dark/Light Mode:**
-- CSS-only implementation using `@media (prefers-color-scheme: dark)`
-- No JavaScript toggle needed
-- Automatic browser preference detection
-
-### Admin Interface
-
-**Drag & Drop:**
-- SortableJS library (loaded from CDN: `https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js`)
-- Handle-based dragging (`.slt-link-handle`)
-- Order saved to database on "Save All Links" click
-
-**JavaScript Architecture (`admin/js/admin.js`):**
-- jQuery-based for WordPress compatibility
-- AJAX communication via `sltAdmin.ajax_url` and nonce
-- Real-time slug preview update
-- Auto-save keyboard shortcut (Ctrl/Cmd+S)
-- URL auto-prefixing with `https://`
-
-## Development Notes
-
-### Adding New Features
-
-**Adding Link Properties:**
-1. Update data model in `ajax_save_links()` sanitization loop (simple-linktree.php:186-192)
-2. Add input field to admin template (admin/views/admin-page.php)
-3. Update AJAX serialization in admin.js (admin/js/admin.js:68-80)
-4. Display in public template (public/views/linktree-page.php)
-
-**Adding New Settings:**
-1. Register setting: `register_setting('slt_settings', 'slt_new_option')` in `register_settings()`
-2. Add form field to admin-page.php settings section
-3. Handle save in `admin_page()` POST handler
-4. Add default value in `activate()` method
-
-### Rewrite Rules
-
-**IMPORTANT**: When changing the slug system:
-- Rewrite rules are added in `init()` hook
-- Must call `flush_rewrite_rules()` after slug changes
-- Activation/deactivation hooks already handle this
-- Query var `simple_linktree` triggers custom template rendering
-
-### AJAX Security
-
-All AJAX requests use:
-- Nonce verification: `check_ajax_referer('slt_admin_nonce', 'nonce')`
-- Capability check: `current_user_can('manage_options')`
-- Input sanitization: `sanitize_text_field()`, `esc_url_raw()`, etc.
-
-### SortableJS Integration
-
-The drag-and-drop functionality depends on SortableJS being loaded **before** admin.js:
-
-```php
+// In simple-linktree.php:114-125
 wp_register_script('sortable', 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js', array(), '1.15.0', true);
 wp_enqueue_script('sortable');
-wp_enqueue_script('slt-admin-js', ..., array('jquery', 'sortable'), ...);
+wp_enqueue_script('slt-admin-js', SIMPLE_LINKTREE_PLUGIN_URL . 'admin/js/admin.js', array('jquery', 'sortable'), SIMPLE_LINKTREE_VERSION, true);
 ```
 
-Order is preserved by DOM order when serializing links in `$('#save-links-btn').on('click')` handler.
+**Never replace this with jQuery UI Sortable** - it will break on ClassicPress.
 
-## Important Implementation Details
+### Rewrite Rules & Slug Management
 
-### Theme Independence
+When the custom slug is updated:
+1. Save new slug to `slt_page_slug` option
+2. **Must call `flush_rewrite_rules()`** to regenerate permalink structure
+3. Old slug becomes inaccessible immediately
 
-The plugin bypasses WordPress themes entirely:
-- `template_redirect` hook exits early with custom output
-- No `get_header()`, `get_footer()`, or theme template tags
-- Inline CSS ensures no theme stylesheet conflicts
+This happens in:
+- `activate()` - Plugin activation
+- `admin_page()` - When settings form submitted (`simple-linktree.php:155-162`)
 
-### Link ID Generation
+### Options Storage Structure
 
-Links use timestamp-based IDs: `'link-' + Date.now()` (admin.js:24)
-- Ensures unique IDs without database roundtrip
-- IDs persist through reordering
-- Used for deletion targeting
+```php
+// All stored in wp_options table:
+'slt_page_slug'      => 'links'           // string
+'slt_profile_name'   => 'Site Name'       // string
+'slt_profile_bio'    => 'Bio text...'     // string (can be empty)
+'slt_links'          => '[{"id":"link-123","title":"...","url":"...","icon":"..."},...]'  // JSON array
+```
 
-### URL Sanitization
+**Link Object Schema**:
+```json
+{
+  "id": "link-1234567890",      // Unique ID (timestamp-based)
+  "title": "My Website",         // Required
+  "url": "https://example.com",  // Required, validated URL
+  "icon": "🔗"                   // Optional emoji/text
+}
+```
 
-URLs are automatically prefixed with `https://` on blur if missing protocol (admin.js:121-128)
+## Development Workflows
 
-### Admin Bar Integration
+### Composer Dependencies
 
-"View Linktree Page" button added to WordPress admin bar (`add_admin_bar_menu()`) opens linktree in new tab.
+This plugin uses Composer for dependency management.
 
-## ClassicPress Compatibility
+**Dependencies**:
+- `yahnis-elsts/plugin-update-checker` (v5.6+) - Automatic plugin updates from GitHub
 
-This plugin is fully compatible with ClassicPress (WordPress fork):
-- Uses WordPress core APIs only (no Gutenberg dependencies)
-- Classic admin interfaces (no block editor)
-- Standard options/settings API
+**IMPORTANT**: Unlike typical Composer projects, the `vendor/` directory **IS committed to the repository**. This is necessary because:
+- Users install the plugin directly from GitHub (not via Composer)
+- End users don't run `composer install`
+- The Plugin Update Checker library must be present for the plugin to function
 
-## Common Development Tasks
+**For developers**: Only run `composer update` if you need to update dependencies. The `vendor/` directory should be committed after updates.
 
-### Testing Slug Changes
+### No Build Process Required
 
-1. Change slug in admin settings
-2. Save settings (triggers `flush_rewrite_rules()`)
-3. Verify old slug returns 404
-4. Verify new slug loads linktree page
+This plugin has **no compilation, bundling, or build step** for CSS/JavaScript. All CSS and JavaScript files are served directly.
 
-### Testing Link Reordering
+**To make changes**:
+1. Edit the relevant file directly
+2. Reload the browser (hard refresh if needed: Cmd+Shift+R / Ctrl+Shift+R)
+3. If changes don't appear, increment version number in `simple-linktree.php` (lines 6 and 20)
 
-1. Add multiple links in admin
-2. Drag links to new positions
-3. Click "Save All Links"
-4. Verify order persists on page reload
-5. Check frontend displays in correct order
+### Version Bump Process
 
-### Testing AJAX Functionality
+When CSS/JS changes aren't appearing due to browser caching, or when releasing a new version:
 
-1. Open browser dev tools → Network tab
-2. Add/delete/reorder links
-3. Click "Save All Links"
-4. Verify AJAX requests to `admin-ajax.php`
-5. Check response status and data
+```php
+// In simple-linktree.php
+define('SIMPLE_LINKTREE_VERSION', '1.0.2');  // Line 20 - increment this
+```
+
+Also update the plugin header comment:
+```php
+* Version: 1.0.2  // Line 6 - must match constant
+```
+
+This forces browsers to download fresh assets since the version is appended as `?ver=X.X.X` query string.
+
+**IMPORTANT**: After committing version changes to the `master` branch on GitHub, the plugin will **automatically notify ClassicPress installations** of the update via the Plugin Update Checker.
+
+### Testing Changes
+
+**Admin Panel Changes**:
+1. Navigate to WordPress admin → Linktree menu
+2. Test drag-and-drop, add/delete links, save functionality
+3. Check browser console for JavaScript errors
+4. Verify AJAX requests complete successfully (Network tab)
+
+**Public Page Changes**:
+1. Click "View Page" in admin bar or visit `/{your-slug}`
+2. Test both light and dark mode (toggle OS preference or use browser dev tools)
+3. Verify responsive behavior at different screen widths
+4. Check that theme assets are NOT loading (view source)
 
 ### Debugging
 
-Enable WordPress debug mode (if not already enabled):
-
+**Enable WordPress debugging** (should already be on for this site):
 ```php
-// wp-config.php
+// In wp-config.php
 define('WP_DEBUG', true);
 define('WP_DEBUG_LOG', true);
 ```
 
-Check error logs at: `wp-content/debug.log`
+**Check logs**: `/wp-content/debug.log`
 
-## Browser Compatibility
+**Common issues**:
+- **404 on custom slug**: Deactivate and reactivate plugin to flush rewrite rules
+- **jQuery/JavaScript errors**: Check that SortableJS is loading before admin.js
+- **AJAX failing**: Verify nonce is being passed correctly in `sltAdmin` object
+- **Changes not appearing**: Hard refresh browser or bump version number
 
-Minimum browser requirements:
-- Modern browsers with CSS custom properties support
-- `prefers-color-scheme` media query support (2019+)
-- ES5 JavaScript (for admin interface)
+## Security Implementation
+
+All AJAX handlers follow this pattern:
+```php
+public function ajax_save_links() {
+    check_ajax_referer('slt_admin_nonce', 'nonce');  // Verify nonce token
+
+    if (!current_user_can('manage_options')) {       // Check admin capability
+        wp_send_json_error('Unauthorized');
+        return;
+    }
+
+    // Sanitize all inputs
+    $sanitized_links[] = array(
+        'id' => sanitize_text_field($link['id']),
+        'title' => sanitize_text_field($link['title']),
+        'url' => esc_url_raw($link['url']),
+        'icon' => sanitize_text_field($link['icon'])
+    );
+
+    // Process and return
+}
+```
+
+**Never remove or bypass**:
+- Nonce verification (`check_ajax_referer`, `check_admin_referer`)
+- Capability checks (`current_user_can('manage_options')`)
+- Input sanitization functions
+- Output escaping in templates (`esc_html`, `esc_url`, `esc_attr`)
+
+## File Editing Guidelines
+
+### Admin JavaScript (`admin/js/admin.js`)
+
+**Key patterns to maintain**:
+- jQuery document ready wrapper
+- SortableJS instantiation with `linksContainer` element
+- Event delegation for dynamically added elements (`.delete-link-btn`)
+- AJAX calls include nonce from `sltAdmin.nonce`
+- New links get unique IDs: `'link-' + Date.now()`
+
+### Public Template (`public/views/linktree-page.php`)
+
+**Critical considerations**:
+- This is a **complete HTML document** (includes `<!DOCTYPE html>`, `<head>`, `<body>`)
+- CSS is embedded in `<style>` tags (no external stylesheet)
+- **No JavaScript should be added** - keep it pure HTML/CSS for performance
+- Must manually escape all PHP output: `<?php echo esc_html($profile_name); ?>`
+- Dark mode uses `@media (prefers-color-scheme: dark)` - do not use JavaScript toggles
+
+### Admin Template (`admin/views/admin-page.php`)
+
+**Layout structure**:
+```html
+<div class="slt-container">
+  <div class="slt-panel slt-settings-panel">   <!-- 30% width, left panel -->
+    <!-- General Settings form -->
+  </div>
+
+  <div class="slt-panel slt-links-panel">      <!-- 70% width, right panel -->
+    <div id="links-container">                 <!-- Sortable container -->
+      <!-- Link items rendered here -->
+    </div>
+  </div>
+</div>
+```
+
+Responsive behavior at `@media (max-width: 768px)`: Panels stack vertically.
+
+## Common Modifications
+
+### Adding New Link Fields
+
+To add a new field (e.g., "description") to links:
+
+1. **Update admin template** (`admin/views/admin-page.php`):
+   ```php
+   <div class="slt-link-field">
+       <label>Description</label>
+       <input type="text" class="link-description" value="<?php echo esc_attr($link['description'] ?? ''); ?>" />
+   </div>
+   ```
+
+2. **Update admin JavaScript** (`admin/js/admin.js`):
+   ```javascript
+   // In "Add new link" handler:
+   '<div class="slt-link-field"><label>Description</label><input type="text" class="link-description" value="" /></div>' +
+
+   // In "Save all links" handler:
+   const link = {
+       id: $item.data('id'),
+       title: $item.find('.link-title').val().trim(),
+       url: $item.find('.link-url').val().trim(),
+       icon: $item.find('.link-icon').val().trim(),
+       description: $item.find('.link-description').val().trim()  // Add this
+   };
+   ```
+
+3. **Update AJAX handler** (`simple-linktree.php` in `ajax_save_links()`):
+   ```php
+   $sanitized_links[] = array(
+       'id' => sanitize_text_field($link['id']),
+       'title' => sanitize_text_field($link['title']),
+       'url' => esc_url_raw($link['url']),
+       'icon' => sanitize_text_field($link['icon']),
+       'description' => sanitize_text_field($link['description'] ?? '')  // Add this
+   );
+   ```
+
+4. **Update public template** (`public/views/linktree-page.php`):
+   ```php
+   <?php if (!empty($link['description'])): ?>
+       <p class="link-description"><?php echo esc_html($link['description']); ?></p>
+   <?php endif; ?>
+   ```
+
+### Changing URL Slug Programmatically
+
+```php
+update_option('slt_page_slug', 'new-slug');
+flush_rewrite_rules();  // Critical! Must flush after slug change
+```
+
+### Customizing Colors
+
+Edit CSS custom properties in `public/views/linktree-page.php`:
+```css
+:root {
+    --bg-color: #ffffff;      /* Light mode background */
+    --text-color: #0a0a0a;    /* Light mode text */
+    --link-bg: #f5f5f5;       /* Light mode link buttons */
+    --link-hover: #e8e8e8;    /* Light mode hover */
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #0a0a0a;      /* Dark mode background */
+        --text-color: #ffffff;    /* Dark mode text */
+        --link-bg: #1a1a1a;       /* Dark mode link buttons */
+        --link-hover: #2a2a2a;    /* Dark mode hover */
+    }
+}
+```
+
+## ClassicPress Compatibility (PRIMARY FOCUS)
+
+This plugin is designed **primarily for ClassicPress**. All development decisions prioritize ClassicPress compatibility:
+
+### Critical Requirements:
+- **NEVER use Gutenberg blocks or block editor features** - ClassicPress does not include Gutenberg
+- **NEVER use jQuery UI Sortable** - Deprecated in ClassicPress, use SortableJS only
+- **No REST API dependencies** - ClassicPress REST API differs from WordPress
+- **Classic editor patterns only** - Admin interface is custom-built using traditional WordPress hooks
+- **Use classic enqueue methods** - Standard `wp_enqueue_script()` and `wp_enqueue_style()`
+
+### WordPress Compatibility:
+The plugin also works on WordPress 5.0+ as a side effect of following ClassicPress-compatible patterns, but **ClassicPress is the primary target platform**.
+
+### Why SortableJS Over jQuery UI Sortable:
+ClassicPress deprecated jQuery UI Sortable, making it unavailable. This is why we use SortableJS from CDN. **Never attempt to use jQuery UI Sortable or other deprecated jQuery UI components**.
+
+## Performance Notes
+
+**Public page performance**:
+- Single HTTP request for HTML
+- ~5KB embedded CSS (no external stylesheet)
+- Zero JavaScript
+- No theme assets loaded (complete bypass)
+- No database queries on page load (data loaded once in `render_linktree_page()`)
+
+**Admin panel considerations**:
+- SortableJS loaded from CDN (~25KB minified)
+- Admin CSS and JS only loaded on plugin's admin page (not sitewide)
+- AJAX requests are lightweight (JSON payload typically <5KB)
+
+## Automatic Updates from GitHub
+
+The plugin uses **Yahnis Elsts' Plugin Update Checker** to provide automatic updates directly from the GitHub repository.
+
+### How It Works
+
+1. Plugin checks GitHub `master` branch for updates
+2. Compares version in plugin header with latest commit on master
+3. If newer version exists, shows update notification in ClassicPress admin
+4. Users can update directly from the Plugins page (just like WordPress.org plugins)
+
+### Update Configuration
+
+Located in `simple-linktree.php` lines 27-37:
+
+```php
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+$updateChecker = PucFactory::buildUpdateChecker(
+    'https://github.com/JensS/simple-linktree/',
+    __FILE__,
+    'simple-linktree'
+);
+
+$updateChecker->setBranch('master');  // Branch to check for updates
+```
+
+### Releasing Updates
+
+To release a new version:
+
+1. **Update version number** in `simple-linktree.php` (lines 6 and 20)
+2. **Commit changes** with descriptive message
+3. **Push to master branch** on GitHub
+4. Plugin installations will automatically detect the update within 12 hours
+
+**No need to create GitHub releases or tags** - the update checker works directly from branch commits.
+
+### Testing Updates Locally
+
+The update checker caches results. To force an immediate check:
+1. Go to Plugins page in ClassicPress admin
+2. Delete transient: `wp transient delete puc_result_simple-linktree`
+3. Refresh the plugins page
+
+Or use this PHP snippet in a temporary admin page:
+```php
+delete_site_transient('update_plugins');
+wp_update_plugins();  // Force check
+```
+
+## Statistics Tracking (GDPR-Compliant)
+
+The plugin includes **cookie-free, GDPR-compliant statistics** tracking for page views and link clicks.
+
+### How It Works
+
+**Privacy-First Design:**
+- No cookies used
+- No personal data stored
+- No IP addresses stored (only daily-changing hashes)
+- Uses WordPress transients for duplicate prevention (expires after 24 hours)
+- All data is aggregated daily
+
+**Database Schema:**
+```sql
+CREATE TABLE wp_slt_stats (
+    id bigint(20) AUTO_INCREMENT PRIMARY KEY,
+    link_id varchar(50),           -- NULL for page views, link ID for clicks
+    event_type varchar(20),        -- 'view' or 'click'
+    event_date date,               -- Aggregated by date
+    count int(11) DEFAULT 1,       -- Incrementing counter
+    UNIQUE KEY unique_stat (link_id, event_type, event_date)
+);
+```
+
+### Architecture
+
+**Page View Tracking:**
+- Triggered in `render_linktree_page()` method (simple-linktree.php:378)
+- Calls `track_event('view')` before rendering template
+- One view per unique visitor per day (using IP hash with daily salt)
+
+**Click Tracking:**
+- JavaScript in `public/views/linktree-page.php` (lines 217-246)
+- Uses `navigator.sendBeacon()` API for reliable tracking
+- Sends AJAX request to `wp_ajax_slt_track_click` handler
+- Tracked on click, doesn't delay navigation
+
+**Duplicate Prevention:**
+```php
+// In track_event() method:
+$ip_hash = hash('sha256', $_SERVER['REMOTE_ADDR'] . date('Y-m-d') . AUTH_KEY);
+$cache_key = 'slt_tracked_' . $event_type . '_' . $link_id . '_' . $ip_hash;
+
+if (get_transient($cache_key)) {
+    return; // Already tracked today
+}
+
+set_transient($cache_key, '1', $seconds_until_midnight);
+```
+
+The hash uses:
+- IP address (never stored)
+- Current date (hash changes daily)
+- WordPress AUTH_KEY (site-specific salt)
+
+This means the same visitor cannot be tracked across days, ensuring privacy.
+
+### Statistics Display
+
+Admin panel shows (simple-linktree.php:172-196, admin/views/admin-page.php:91-173):
+
+**Overview Metrics:**
+- Total page views
+- Total link clicks
+- Click-through rate (CTR)
+
+**Link Performance Table:**
+- Sorted by clicks (descending)
+- Shows title, URL, and total clicks per link
+
+**Recent Activity:**
+- Last 30 days of page views
+- Daily breakdown
+
+### Defensive Coding
+
+The code gracefully handles missing stats table:
+
+```php
+// Both track_event() and get_statistics() check table existence
+if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+    return; // Skip tracking or return empty stats
+}
+```
+
+This prevents errors if plugin is updated but not reactivated (table creation happens in `activate()` method).
+
+### AJAX Endpoints
+
+**Click Tracking** (public-facing, no auth required):
+```php
+// Action: slt_track_click
+// Parameters: link_id
+// Handler: ajax_track_click() (simple-linktree.php:244-254)
+```
+
+No nonce required since:
+1. No sensitive data exposed
+2. Rate-limited by transient system
+3. Only increments anonymous counters
+
+### CSS Styling
+
+Statistics section styles in `admin/css/admin.css` (lines 174-289):
+- Grid layout for stat boxes
+- Responsive design (stacks on mobile)
+- WordPress admin theme integration
+
+## Repository Information
+
+- **GitHub**: https://github.com/JensS/simple-linktree
+- **Update Branch**: master
+- **License**: GPL v2 or later
+- **Author**: Jens Sage (jens@jenssage.com)
