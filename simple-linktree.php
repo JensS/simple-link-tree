@@ -115,10 +115,15 @@ class Simple_Linktree {
         if ($hook !== 'toplevel_page_simple-linktree') {
             return;
         }
-        
+
         wp_enqueue_style('slt-admin-css', SIMPLE_LINKTREE_PLUGIN_URL . 'admin/css/admin.css', array(), SIMPLE_LINKTREE_VERSION);
+
+        // Register and enqueue SortableJS from CDN
+        wp_register_script('sortable', 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js', array(), '1.15.0', true);
+        wp_enqueue_script('sortable');
+
         wp_enqueue_script('slt-admin-js', SIMPLE_LINKTREE_PLUGIN_URL . 'admin/js/admin.js', array('jquery', 'sortable'), SIMPLE_LINKTREE_VERSION, true);
-        
+
         wp_localize_script('slt-admin-js', 'sltAdmin', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('slt_admin_nonce')
