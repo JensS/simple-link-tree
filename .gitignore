@@ -22,7 +22,9 @@
 /xmlrpc.php
 
 # Composer
-/vendor/
+# NOTE: vendor/ is intentionally NOT ignored for this plugin
+# because it's distributed directly via GitHub and users need
+# the Plugin Update Checker library to be present
 /composer.lock
 
 # Node
