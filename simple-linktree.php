@@ -41,11 +41,15 @@ class Simple_Linktree {
         add_action('template_redirect', array($this, 'template_redirect'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         add_action('admin_bar_menu', array($this, 'add_admin_bar_menu'), 999);
-        
+
         // AJAX handlers
         add_action('wp_ajax_slt_save_links', array($this, 'ajax_save_links'));
         add_action('wp_ajax_slt_delete_link', array($this, 'ajax_delete_link'));
-        
+
+        // Statistics - non-authenticated AJAX for click tracking
+        add_action('wp_ajax_nopriv_slt_track_click', array($this, 'ajax_track_click'));
+        add_action('wp_ajax_slt_track_click', array($this, 'ajax_track_click'));
+
         // Activation/Deactivation
         register_activation_hook(__FILE__, array($this, 'activate'));
         register_deactivation_hook(__FILE__, array($this, 'deactivate'));
@@ -70,6 +74,8 @@ class Simple_Linktree {
     }
     
     public function activate() {
+        global $wpdb;
+
         // Set default options
         if (!get_option('slt_page_slug')) {
             add_option('slt_page_slug', 'links');
@@ -83,7 +89,24 @@ class Simple_Linktree {
         if (!get_option('slt_profile_bio')) {
             add_option('slt_profile_bio', '');
         }
-        
+
+        // Create statistics table
+        $table_name = $wpdb->prefix . 'slt_stats';
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            link_id varchar(50) DEFAULT NULL,
+            event_type varchar(20) NOT NULL,
+            event_date date NOT NULL,
+            count int(11) NOT NULL DEFAULT 1,
+            PRIMARY KEY (id),
+            UNIQUE KEY unique_stat (link_id, event_type, event_date)
+        ) $charset_collate;";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+
         // Flush rewrite rules
         flush_rewrite_rules();
     }
@@ -150,7 +173,7 @@ class Simple_Linktree {
         if (!current_user_can('manage_options')) {
             return;
         }
-        
+
         // Handle slug update
         if (isset($_POST['slt_update_slug']) && check_admin_referer('slt_settings_nonce')) {
             $new_slug = sanitize_title($_POST['slt_page_slug']);
@@ -161,13 +184,14 @@ class Simple_Linktree {
             flush_rewrite_rules();
             echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
         }
-        
+
         $slug = get_option('slt_page_slug', 'links');
         $profile_name = get_option('slt_profile_name', get_bloginfo('name'));
         $profile_bio = get_option('slt_profile_bio', '');
         $links = json_decode(get_option('slt_links', '[]'), true);
         $page_url = home_url('/' . $slug);
-        
+        $statistics = $this->get_statistics();
+
         include SIMPLE_LINKTREE_PLUGIN_DIR . 'admin/views/admin-page.php';
     }
     
@@ -197,21 +221,166 @@ class Simple_Linktree {
     
     public function ajax_delete_link() {
         check_ajax_referer('slt_admin_nonce', 'nonce');
-        
+
         if (!current_user_can('manage_options')) {
             wp_send_json_error('Unauthorized');
             return;
         }
-        
+
         $link_id = sanitize_text_field($_POST['link_id']);
         $links = json_decode(get_option('slt_links', '[]'), true);
-        
+
         $links = array_filter($links, function($link) use ($link_id) {
             return $link['id'] !== $link_id;
         });
-        
+
         update_option('slt_links', json_encode(array_values($links)));
         wp_send_json_success('Link deleted successfully');
+    }
+
+    /**
+     * Track click event via AJAX
+     * GDPR-compliant: No cookies, no IP storage
+     */
+    public function ajax_track_click() {
+        if (!isset($_POST['link_id'])) {
+            wp_send_json_error('Missing link_id');
+            return;
+        }
+
+        $link_id = sanitize_text_field($_POST['link_id']);
+        $this->track_event('click', $link_id);
+
+        wp_send_json_success();
+    }
+
+    /**
+     * Track an event (page view or link click)
+     * Uses IP hash with daily salt to prevent duplicate counting within same day
+     * Hash is regenerated daily so no long-term tracking is possible
+     *
+     * @param string $event_type 'view' or 'click'
+     * @param string|null $link_id Link ID for click events, null for page views
+     */
+    private function track_event($event_type, $link_id = null) {
+        global $wpdb;
+
+        // Check if table exists first
+        $table_name = $wpdb->prefix . 'slt_stats';
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+            return; // Table doesn't exist yet, skip tracking
+        }
+
+        // Check if this is a duplicate view/click today (basic bot/refresh protection)
+        // Use IP hash with daily salt - no PII stored, hash changes daily
+        $ip_hash = $this->get_daily_ip_hash();
+        $cache_key = 'slt_tracked_' . $event_type . '_' . ($link_id ?: 'page') . '_' . $ip_hash;
+
+        if (get_transient($cache_key)) {
+            return; // Already tracked this view/click today
+        }
+
+        // Set transient to expire at end of day
+        $seconds_until_midnight = strtotime('tomorrow') - time();
+        set_transient($cache_key, '1', $seconds_until_midnight);
+
+        // Record or increment the stat
+        $event_date = current_time('Y-m-d');
+
+        $wpdb->query($wpdb->prepare(
+            "INSERT INTO $table_name (link_id, event_type, event_date, count)
+            VALUES (%s, %s, %s, 1)
+            ON DUPLICATE KEY UPDATE count = count + 1",
+            $link_id,
+            $event_type,
+            $event_date
+        ));
+    }
+
+    /**
+     * Generate daily IP hash for duplicate detection
+     * No IP addresses are stored - hash changes daily
+     *
+     * @return string
+     */
+    private function get_daily_ip_hash() {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $daily_salt = date('Y-m-d') . AUTH_KEY; // Daily changing salt
+        return hash('sha256', $ip . $daily_salt);
+    }
+
+    /**
+     * Get statistics data for admin display
+     *
+     * @return array
+     */
+    private function get_statistics() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'slt_stats';
+
+        // Check if table exists first
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+            return array(
+                'total_views' => 0,
+                'total_clicks' => 0,
+                'link_stats' => array(),
+                'daily_views' => array()
+            );
+        }
+
+        // Get total page views
+        $total_views = $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(count) FROM $table_name WHERE event_type = %s",
+            'view'
+        ));
+
+        // Get total clicks
+        $total_clicks = $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(count) FROM $table_name WHERE event_type = %s",
+            'click'
+        ));
+
+        // Get clicks per link
+        $links = json_decode(get_option('slt_links', '[]'), true);
+        $link_stats = array();
+
+        foreach ($links as $link) {
+            $clicks = $wpdb->get_var($wpdb->prepare(
+                "SELECT SUM(count) FROM $table_name WHERE event_type = %s AND link_id = %s",
+                'click',
+                $link['id']
+            ));
+
+            $link_stats[] = array(
+                'id' => $link['id'],
+                'title' => $link['title'],
+                'url' => $link['url'],
+                'clicks' => intval($clicks)
+            );
+        }
+
+        // Sort by clicks descending
+        usort($link_stats, function($a, $b) {
+            return $b['clicks'] - $a['clicks'];
+        });
+
+        // Get recent activity (last 30 days)
+        $daily_views = $wpdb->get_results($wpdb->prepare(
+            "SELECT event_date, SUM(count) as views
+            FROM $table_name
+            WHERE event_type = %s AND event_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY event_date
+            ORDER BY event_date DESC
+            LIMIT 30",
+            'view'
+        ), ARRAY_A);
+
+        return array(
+            'total_views' => intval($total_views),
+            'total_clicks' => intval($total_clicks),
+            'link_stats' => $link_stats,
+            'daily_views' => $daily_views
+        );
     }
     
     public function template_redirect() {
@@ -222,10 +391,13 @@ class Simple_Linktree {
     }
     
     private function render_linktree_page() {
+        // Track page view (GDPR-compliant, no cookies)
+        $this->track_event('view');
+
         $profile_name = get_option('slt_profile_name', get_bloginfo('name'));
         $profile_bio = get_option('slt_profile_bio', '');
         $links = json_decode(get_option('slt_links', '[]'), true);
-        
+
         include SIMPLE_LINKTREE_PLUGIN_DIR . 'public/views/linktree-page.php';
     }
 }

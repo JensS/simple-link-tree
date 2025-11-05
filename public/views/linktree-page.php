@@ -193,9 +193,10 @@
         <div class="links">
             <?php if (!empty($links)): ?>
                 <?php foreach ($links as $link): ?>
-                    <a href="<?php echo esc_url($link['url']); ?>" 
-                       class="link-item" 
-                       target="_blank" 
+                    <a href="<?php echo esc_url($link['url']); ?>"
+                       class="link-item"
+                       data-link-id="<?php echo esc_attr($link['id']); ?>"
+                       target="_blank"
                        rel="noopener noreferrer">
                         <div class="link-content">
                             <?php if (!empty($link['icon'])): ?>
@@ -212,5 +213,36 @@
             <?php endif; ?>
         </div>
     </div>
+
+    <script>
+    // GDPR-compliant click tracking (no cookies)
+    (function() {
+        var links = document.querySelectorAll('.link-item');
+
+        links.forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                var linkId = this.getAttribute('data-link-id');
+                var url = this.getAttribute('href');
+
+                // Send tracking request (non-blocking)
+                if (navigator.sendBeacon) {
+                    // Use sendBeacon for reliable tracking even as page unloads
+                    var formData = new FormData();
+                    formData.append('action', 'slt_track_click');
+                    formData.append('link_id', linkId);
+                    navigator.sendBeacon('<?php echo admin_url('admin-ajax.php'); ?>', formData);
+                } else {
+                    // Fallback for older browsers
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '<?php echo admin_url('admin-ajax.php'); ?>', true);
+                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                    xhr.send('action=slt_track_click&link_id=' + encodeURIComponent(linkId));
+                }
+
+                // Let the link open normally
+            });
+        });
+    })();
+    </script>
 </body>
 </html>

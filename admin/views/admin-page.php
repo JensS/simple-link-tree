@@ -87,6 +87,90 @@
                 <span class="slt-save-status"></span>
             </div>
         </div>
+
+        <div class="slt-statistics-section">
+            <h2>Statistics</h2>
+            <p class="slt-stats-note">GDPR-compliant tracking (no cookies, no personal data stored)</p>
+
+            <div class="slt-stats-overview">
+                <div class="slt-stat-box">
+                    <div class="slt-stat-value"><?php echo number_format($statistics['total_views']); ?></div>
+                    <div class="slt-stat-label">Total Page Views</div>
+                </div>
+                <div class="slt-stat-box">
+                    <div class="slt-stat-value"><?php echo number_format($statistics['total_clicks']); ?></div>
+                    <div class="slt-stat-label">Total Link Clicks</div>
+                </div>
+                <div class="slt-stat-box">
+                    <div class="slt-stat-value">
+                        <?php
+                        if ($statistics['total_views'] > 0) {
+                            echo number_format(($statistics['total_clicks'] / $statistics['total_views']) * 100, 1) . '%';
+                        } else {
+                            echo '0%';
+                        }
+                        ?>
+                    </div>
+                    <div class="slt-stat-label">Click-Through Rate</div>
+                </div>
+            </div>
+
+            <?php if (!empty($statistics['link_stats'])): ?>
+            <div class="slt-stats-table">
+                <h3>Link Performance</h3>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th>Link Title</th>
+                            <th>URL</th>
+                            <th style="text-align: right;">Clicks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($statistics['link_stats'] as $link_stat): ?>
+                        <tr>
+                            <td>
+                                <strong><?php echo esc_html($link_stat['title']); ?></strong>
+                            </td>
+                            <td>
+                                <a href="<?php echo esc_url($link_stat['url']); ?>" target="_blank" rel="noopener">
+                                    <?php echo esc_html($link_stat['url']); ?>
+                                </a>
+                            </td>
+                            <td style="text-align: right;">
+                                <strong><?php echo number_format($link_stat['clicks']); ?></strong>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($statistics['daily_views'])): ?>
+            <div class="slt-stats-chart">
+                <h3>Recent Activity (Last 30 Days)</h3>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th style="text-align: right;">Views</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($statistics['daily_views'] as $daily): ?>
+                        <tr>
+                            <td><?php echo esc_html(date('F j, Y', strtotime($daily['event_date']))); ?></td>
+                            <td style="text-align: right;">
+                                <strong><?php echo number_format($daily['views']); ?></strong>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 

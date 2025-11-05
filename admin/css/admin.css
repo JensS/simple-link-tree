@@ -171,27 +171,119 @@
     width: 100%;
 }
 
+/* Statistics Section */
+.slt-statistics-section {
+    flex: 1 1 100%;
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    margin-top: 0;
+}
+
+.slt-statistics-section h2 {
+    margin-top: 0;
+    margin-bottom: 5px;
+}
+
+.slt-stats-note {
+    color: #666;
+    font-size: 13px;
+    font-style: italic;
+    margin-bottom: 20px;
+}
+
+.slt-stats-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.slt-stat-box {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.slt-stat-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.slt-stat-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #2271b1;
+    line-height: 1.2;
+    margin-bottom: 8px;
+}
+
+.slt-stat-label {
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+}
+
+.slt-stats-table,
+.slt-stats-chart {
+    margin-top: 30px;
+}
+
+.slt-stats-table h3,
+.slt-stats-chart h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.slt-stats-table table,
+.slt-stats-chart table {
+    margin-top: 0;
+}
+
+.slt-stats-table td a {
+    color: #2271b1;
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.slt-stats-table td a:hover {
+    text-decoration: underline;
+}
+
 @media (max-width: 768px) {
     .slt-admin-container {
         flex-direction: column;
     }
-    
+
     .slt-settings-section,
     .slt-links-section {
         min-width: 100%;
     }
-    
+
     .slt-links-header {
         flex-direction: column;
         gap: 10px;
         align-items: flex-start;
     }
-    
+
     .slt-link-item {
         flex-direction: column;
     }
-    
+
     .slt-link-icon-field {
         max-width: 100%;
+    }
+
+    .slt-stats-overview {
+        grid-template-columns: 1fr;
+    }
+
+    .slt-stat-value {
+        font-size: 28px;
     }
 }
