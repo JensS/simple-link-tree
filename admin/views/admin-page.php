@@ -39,7 +39,6 @@
                 
                 <p class="submit">
                     <input type="submit" name="slt_update_slug" class="button button-primary" value="Save Settings" />
-                    <a href="<?php echo esc_url($page_url); ?>" class="button" target="_blank">View Page</a>
                 </p>
             </form>
         </div>

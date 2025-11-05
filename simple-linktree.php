@@ -40,6 +40,7 @@ class Simple_Linktree {
         add_action('admin_init', array($this, 'register_settings'));
         add_action('template_redirect', array($this, 'template_redirect'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+        add_action('admin_bar_menu', array($this, 'add_admin_bar_menu'), 999);
         
         // AJAX handlers
         add_action('wp_ajax_slt_save_links', array($this, 'ajax_save_links'));
@@ -122,6 +123,22 @@ class Simple_Linktree {
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('slt_admin_nonce')
         ));
+    }
+
+    public function add_admin_bar_menu($wp_admin_bar) {
+        $slug = get_option('slt_page_slug', 'links');
+        $page_url = home_url('/' . $slug);
+
+        $args = array(
+            'id'    => 'view-linktree-page',
+            'title' => 'View Linktree Page',
+            'href'  => $page_url,
+            'meta'  => array(
+                'target' => '_blank',
+                'class' => 'view-linktree-page-button'
+            )
+        );
+        $wp_admin_bar->add_node($args);
     }
     
     public function admin_page() {

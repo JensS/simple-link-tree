@@ -23,7 +23,7 @@ jQuery(document).ready(function($) {
     $('#add-link-btn').on('click', function() {
         const template = $('#link-item-template').html();
         const uniqueId = 'link-' + Date.now();
-        const newLink = template.replace(/{{id}}/g, uniqueId);
+        const newLink = template.replace('{{id}}', uniqueId);
         
         $('.slt-no-links').remove();
         $('#links-container').append(newLink);
