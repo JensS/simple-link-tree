@@ -1,0 +1,13 @@
+{
+    "name": "jenss/simple-linktree",
+    "description": "A minimalist Linktree-style WordPress plugin that automatically adapts to browser dark/light mode preferences.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Jens Sage",
+            "email": "jens@jenssage.com"
+        }
+    ],
+    "require": {}
+}
