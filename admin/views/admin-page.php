@@ -90,29 +90,4 @@
     </div>
 </div>
 
-<script type="text/template" id="link-item-template">
-    <div class="slt-link-item" data-id="{{id}}">
-        <div class="slt-link-handle">
-            <span class="dashicons dashicons-menu"></span>
-        </div>
-        <div class="slt-link-content">
-            <div class="slt-link-field">
-                <label>Title</label>
-                <input type="text" class="link-title" value="" placeholder="Link Title" />
-            </div>
-            <div class="slt-link-field">
-                <label>URL</label>
-                <input type="url" class="link-url" value="" placeholder="https://example.com" />
-            </div>
-            <div class="slt-link-field slt-link-icon-field">
-                <label>Icon (optional)</label>
-                <input type="text" class="link-icon" value="" placeholder="e.g., 🔗 or emoji" />
-            </div>
-        </div>
-        <div class="slt-link-actions">
-            <button type="button" class="button delete-link-btn" title="Delete">
-                <span class="dashicons dashicons-trash"></span>
-            </button>
-        </div>
-    </div>
-</script>
+
