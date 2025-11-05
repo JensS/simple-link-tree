@@ -1,17 +1,17 @@
 jQuery(document).ready(function($) {
     'use strict';
     
-    // Make links sortable
-    $('#links-container').sortable({
-        handle: '.slt-link-handle',
-        placeholder: 'slt-link-placeholder',
-        axis: 'y',
-        opacity: 0.8,
-        cursor: 'move',
-        update: function(event, ui) {
-            // Links reordered
-        }
-    });
+    const linksContainer = document.getElementById('links-container');
+    if (linksContainer) {
+        new Sortable(linksContainer, {
+            animation: 150,
+            handle: '.slt-link-handle',
+            ghostClass: 'slt-link-placeholder',
+            onEnd: function () {
+                // Links reordered
+            }
+        });
+    }
     
     // Update slug preview in real-time
     $('#slt_page_slug').on('input', function() {
@@ -27,9 +27,6 @@ jQuery(document).ready(function($) {
         
         $('.slt-no-links').remove();
         $('#links-container').append(newLink);
-        
-        // Refresh sortable
-        $('#links-container').sortable('refresh');
         
         // Focus on the new link's title field
         $('#links-container .slt-link-item:last-child .link-title').focus();
