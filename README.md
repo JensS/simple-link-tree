@@ -1,6 +1,8 @@
-# Simple Linktree - WordPress Plugin
+# Simple Linktree - ClassicPress Plugin
 
-A minimalist Linktree-style WordPress plugin that automatically adapts to browser dark/light mode preferences. Perfect for creating a clean, professional link-in-bio page.
+A minimalist Linktree-style plugin designed **primarily for ClassicPress** that automatically adapts to browser dark/light mode preferences. Perfect for creating a clean, professional link-in-bio page.
+
+**Note**: This plugin is built for ClassicPress compatibility first. It also works with WordPress 5.0+, but ClassicPress is the primary target platform.
 
 ## Features
 
@@ -8,9 +10,10 @@ A minimalist Linktree-style WordPress plugin that automatically adapts to browse
 - **Custom URL Slug**: Define your own page slug (e.g., `/links`, `/bio`, `/social`)
 - **Drag & Drop Ordering**: Easily reorder links with drag-and-drop interface
 - **Icon Support**: Add emojis or text icons to your links
-- **Theme Independent**: Completely bypasses your WordPress theme for a clean, minimal design
+- **Theme Independent**: Completely bypasses your theme for a clean, minimal design
 - **Mobile Responsive**: Looks great on all devices
-- **Classic Press Compatible**: Works with both WordPress and Classic Press
+- **ClassicPress First**: Built specifically for ClassicPress compatibility (also works with WordPress 5.0+)
+- **Automatic Updates**: Self-updating directly from GitHub (no WordPress.org dependency)
 
 ## Installation
 
@@ -18,21 +21,30 @@ A minimalist Linktree-style WordPress plugin that automatically adapts to browse
 
 1. Download the plugin files
 2. Upload the entire `simple-linktree` folder to `/wp-content/plugins/`
-3. Activate the plugin through the 'Plugins' menu in WordPress
-4. Go to **Linktree** in your WordPress admin menu to configure
+3. Run `composer install` in the plugin directory (required for auto-updates)
+4. Activate the plugin through the 'Plugins' menu in ClassicPress
+5. Go to **Linktree** in your admin menu to configure
+
+**Important**: The plugin requires Composer dependencies for automatic updates. After uploading, SSH into your server and run:
+
+```bash
+cd /path/to/wp-content/plugins/simple-linktree
+composer install
+```
 
 ### Quick Setup
 
 After activation, the plugin will:
 - Create a default page accessible at `yoursite.com/links`
 - Set up the basic configuration
+- Check for updates automatically from GitHub
 - Be ready for you to add your links!
 
 ## Usage
 
 ### Configuring Your Linktree
 
-1. Go to **Linktree** in your WordPress admin menu
+1. Go to **Linktree** in your ClassicPress admin menu
 2. Set your **Page Slug** (the URL where your linktree will be accessible)
 3. Add your **Profile Name** (displayed at the top)
 4. Optionally add a **Profile Bio**
@@ -64,7 +76,7 @@ The plugin uses CSS custom properties and `@media (prefers-color-scheme: dark)` 
 - Default: `yoursite.com/links`
 - Custom: `yoursite.com/[your-custom-slug]`
 
-The plugin uses WordPress rewrite rules to create clean URLs that work independently of your theme.
+The plugin uses ClassicPress/WordPress rewrite rules to create clean URLs that work independently of your theme.
 
 ### Performance
 
@@ -93,8 +105,10 @@ simple-linktree/
 
 ## Requirements
 
-- WordPress 5.0 or higher (or Classic Press)
+- **ClassicPress** (any version) or WordPress 5.0+
 - PHP 7.0 or higher
+- **Composer** (for automatic updates feature)
+- **Note**: This plugin does NOT use Gutenberg or jQuery UI Sortable, ensuring full ClassicPress compatibility
 
 ## Browser Support
 
@@ -129,15 +143,28 @@ Simply drag and drop the links in the admin panel using the handle icon (≡) on
 
 The linktree page includes `noindex, nofollow` meta tags since it's typically used as a utility page. This is intentional to keep your main content prioritized in search results.
 
+### How do updates work?
+
+The plugin automatically checks the GitHub repository for updates. When a new version is available, you'll see an update notification in your ClassicPress admin (just like WordPress.org plugins). Click "Update Now" to install the latest version.
+
+Updates are delivered directly from GitHub without requiring WordPress.org hosting.
+
 ## Changelog
+
+### Version 1.0.1
+- Added automatic plugin updates from GitHub using Plugin Update Checker
+- Emphasis on ClassicPress as primary target platform
+- Documentation updates
+- Composer dependency management
 
 ### Version 1.0.0
 - Initial release
 - Dark/light mode auto-detection
 - Custom slug support
-- Drag & drop link management
+- Drag & drop link management (using SortableJS for ClassicPress compatibility)
 - Icon support
 - Mobile responsive design
+- ClassicPress-first design (no Gutenberg, no deprecated jQuery UI)
 
 ## Support
 
@@ -149,4 +176,4 @@ GPL v2 or later
 
 ## Credits
 
-Developed with ❤️ for the WordPress community
+Developed with ❤️ for the ClassicPress community

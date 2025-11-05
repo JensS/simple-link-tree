@@ -21,6 +21,21 @@ define('SIMPLE_LINKTREE_VERSION', '1.0.1');
 define('SIMPLE_LINKTREE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SIMPLE_LINKTREE_PLUGIN_URL', plugin_dir_url(__FILE__));
 
+// Load Composer autoloader
+require_once SIMPLE_LINKTREE_PLUGIN_DIR . 'vendor/autoload.php';
+
+// Initialize plugin update checker
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+$updateChecker = PucFactory::buildUpdateChecker(
+    'https://github.com/JensS/simple-linktree/',
+    __FILE__,
+    'simple-linktree'
+);
+
+// Set the branch to check for updates (main or master)
+$updateChecker->setBranch('master');
+
 class Simple_Linktree {
     
     private static $instance = null;
