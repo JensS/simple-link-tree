@@ -230,11 +230,11 @@
                     var formData = new FormData();
                     formData.append('action', 'slt_track_click');
                     formData.append('link_id', linkId);
-                    navigator.sendBeacon('<?php echo admin_url('admin-ajax.php'); ?>', formData);
+                    navigator.sendBeacon('<?php echo esc_url(admin_url('admin-ajax.php')); ?>', formData);
                 } else {
                     // Fallback for older browsers
                     var xhr = new XMLHttpRequest();
-                    xhr.open('POST', '<?php echo admin_url('admin-ajax.php'); ?>', true);
+                    xhr.open('POST', '<?php echo esc_url(admin_url('admin-ajax.php')); ?>', true);
                     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
                     xhr.send('action=slt_track_click&link_id=' + encodeURIComponent(linkId));
                 }

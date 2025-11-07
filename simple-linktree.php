@@ -3,7 +3,7 @@
  * Plugin Name: Simple Linktree
  * Plugin URI: https://github.com/JensS/simple-link-tree
  * Description: A minimalist Linktree-style page with dark/light mode support
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: Jens Sage
  * Author URI: https://www.jenssage.com
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SIMPLE_LINKTREE_VERSION', '1.1.1');
+define('SIMPLE_LINKTREE_VERSION', '1.1.2');
 define('SIMPLE_LINKTREE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SIMPLE_LINKTREE_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -264,6 +264,23 @@ class Simple_Linktree {
         }
 
         $link_id = sanitize_text_field($_POST['link_id']);
+
+        // Validate that the link_id exists in our links to prevent arbitrary data insertion
+        $links = json_decode(get_option('slt_links', '[]'), true);
+        $link_exists = false;
+
+        foreach ($links as $link) {
+            if ($link['id'] === $link_id) {
+                $link_exists = true;
+                break;
+            }
+        }
+
+        if (!$link_exists) {
+            wp_send_json_error('Invalid link_id');
+            return;
+        }
+
         $this->track_event('click', $link_id);
 
         wp_send_json_success();
@@ -282,7 +299,7 @@ class Simple_Linktree {
 
         // Check if table exists first
         $table_name = $wpdb->prefix . 'slt_stats';
-        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) != $table_name) {
             return; // Table doesn't exist yet, skip tracking
         }
 
@@ -334,7 +351,7 @@ class Simple_Linktree {
         $table_name = $wpdb->prefix . 'slt_stats';
 
         // Check if table exists first
-        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) != $table_name) {
             return array(
                 'total_views' => 0,
                 'total_clicks' => 0,
