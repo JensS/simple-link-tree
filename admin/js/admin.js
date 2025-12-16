@@ -1,6 +1,12 @@
 jQuery(document).ready(function($) {
     'use strict';
-    
+
+    // Collapsible sections toggle
+    $(document).on('click', '.slt-collapsible-header', function(e) {
+        e.preventDefault();
+        $(this).closest('.slt-collapsible').toggleClass('is-open');
+    });
+
     const linksContainer = document.getElementById('links-container');
     if (linksContainer) {
         new Sortable(linksContainer, {

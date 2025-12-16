@@ -3,7 +3,7 @@
  * Plugin Name: Simple Linktree
  * Plugin URI: https://github.com/JensS/simple-link-tree
  * Description: A minimalist Linktree-style page with dark/light mode support
- * Version: 1.1.2
+ * Version: 1.2.1
  * Author: Jens Sage
  * Author URI: https://www.jenssage.com
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SIMPLE_LINKTREE_VERSION', '1.1.2');
+define('SIMPLE_LINKTREE_VERSION', '1.2.1');
 define('SIMPLE_LINKTREE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SIMPLE_LINKTREE_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -105,6 +105,35 @@ class Simple_Linktree {
             add_option('slt_profile_bio', '');
         }
 
+        // SEO/GEO default options
+        if (!get_option('slt_seo_indexable')) {
+            add_option('slt_seo_indexable', '1'); // Default to indexable
+        }
+        if (!get_option('slt_meta_description')) {
+            add_option('slt_meta_description', '');
+        }
+        if (!get_option('slt_og_image')) {
+            add_option('slt_og_image', '');
+        }
+        if (!get_option('slt_language')) {
+            add_option('slt_language', get_bloginfo('language') ?: 'en');
+        }
+        if (!get_option('slt_geo_region')) {
+            add_option('slt_geo_region', '');
+        }
+        if (!get_option('slt_geo_placename')) {
+            add_option('slt_geo_placename', '');
+        }
+        if (!get_option('slt_schema_type')) {
+            add_option('slt_schema_type', 'Person'); // Person or Organization
+        }
+        if (!get_option('slt_schema_location')) {
+            add_option('slt_schema_location', '');
+        }
+        if (!get_option('slt_schema_country')) {
+            add_option('slt_schema_country', '');
+        }
+
         // Create statistics table
         $table_name = $wpdb->prefix . 'slt_stats';
         $charset_collate = $wpdb->get_charset_collate();
@@ -147,6 +176,17 @@ class Simple_Linktree {
         register_setting('slt_settings', 'slt_links');
         register_setting('slt_settings', 'slt_profile_name');
         register_setting('slt_settings', 'slt_profile_bio');
+
+        // SEO/GEO settings
+        register_setting('slt_settings', 'slt_seo_indexable');
+        register_setting('slt_settings', 'slt_meta_description');
+        register_setting('slt_settings', 'slt_og_image');
+        register_setting('slt_settings', 'slt_language');
+        register_setting('slt_settings', 'slt_geo_region');
+        register_setting('slt_settings', 'slt_geo_placename');
+        register_setting('slt_settings', 'slt_schema_type');
+        register_setting('slt_settings', 'slt_schema_location');
+        register_setting('slt_settings', 'slt_schema_country');
     }
     
     public function enqueue_admin_scripts($hook) {
@@ -195,6 +235,18 @@ class Simple_Linktree {
             update_option('slt_page_slug', $new_slug);
             update_option('slt_profile_name', sanitize_text_field($_POST['slt_profile_name']));
             update_option('slt_profile_bio', sanitize_textarea_field($_POST['slt_profile_bio']));
+
+            // Save SEO/GEO settings
+            update_option('slt_seo_indexable', isset($_POST['slt_seo_indexable']) ? '1' : '0');
+            update_option('slt_meta_description', sanitize_textarea_field($_POST['slt_meta_description'] ?? ''));
+            update_option('slt_og_image', esc_url_raw($_POST['slt_og_image'] ?? ''));
+            update_option('slt_language', sanitize_text_field($_POST['slt_language'] ?? 'en'));
+            update_option('slt_geo_region', sanitize_text_field($_POST['slt_geo_region'] ?? ''));
+            update_option('slt_geo_placename', sanitize_text_field($_POST['slt_geo_placename'] ?? ''));
+            update_option('slt_schema_type', sanitize_text_field($_POST['slt_schema_type'] ?? 'Person'));
+            update_option('slt_schema_location', sanitize_text_field($_POST['slt_schema_location'] ?? ''));
+            update_option('slt_schema_country', sanitize_text_field($_POST['slt_schema_country'] ?? ''));
+
             $this->slug = $new_slug;
             flush_rewrite_rules();
             echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
@@ -206,6 +258,19 @@ class Simple_Linktree {
         $links = json_decode(get_option('slt_links', '[]'), true);
         $page_url = home_url('/' . $slug);
         $statistics = $this->get_statistics();
+
+        // SEO/GEO settings for admin template
+        $seo_settings = array(
+            'indexable' => get_option('slt_seo_indexable', '1'),
+            'meta_description' => get_option('slt_meta_description', ''),
+            'og_image' => get_option('slt_og_image', ''),
+            'language' => get_option('slt_language', get_bloginfo('language') ?: 'en'),
+            'geo_region' => get_option('slt_geo_region', ''),
+            'geo_placename' => get_option('slt_geo_placename', ''),
+            'schema_type' => get_option('slt_schema_type', 'Person'),
+            'schema_location' => get_option('slt_schema_location', ''),
+            'schema_country' => get_option('slt_schema_country', ''),
+        );
 
         include SIMPLE_LINKTREE_PLUGIN_DIR . 'admin/views/admin-page.php';
     }
@@ -429,6 +494,22 @@ class Simple_Linktree {
         $profile_name = get_option('slt_profile_name', get_bloginfo('name'));
         $profile_bio = get_option('slt_profile_bio', '');
         $links = json_decode(get_option('slt_links', '[]'), true);
+
+        // SEO/GEO data for template
+        $slug = get_option('slt_page_slug', 'links');
+        $seo = array(
+            'indexable' => get_option('slt_seo_indexable', '1') === '1',
+            'meta_description' => get_option('slt_meta_description', ''),
+            'og_image' => get_option('slt_og_image', ''),
+            'language' => get_option('slt_language', get_bloginfo('language') ?: 'en'),
+            'geo_region' => get_option('slt_geo_region', ''),
+            'geo_placename' => get_option('slt_geo_placename', ''),
+            'schema_type' => get_option('slt_schema_type', 'Person'),
+            'schema_location' => get_option('slt_schema_location', ''),
+            'schema_country' => get_option('slt_schema_country', ''),
+            'canonical_url' => home_url('/' . $slug),
+            'site_name' => get_bloginfo('name'),
+        );
 
         include SIMPLE_LINKTREE_PLUGIN_DIR . 'public/views/linktree-page.php';
     }

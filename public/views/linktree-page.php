@@ -1,10 +1,104 @@
+<?php
+// Prepare SEO data with fallbacks
+$meta_description = !empty($seo['meta_description']) ? $seo['meta_description'] : (!empty($profile_bio) ? wp_trim_words($profile_bio, 25, '...') : sprintf('Links and resources from %s', $profile_name));
+$page_title = esc_html($profile_name) . ' - Links';
+$lang_attr = !empty($seo['language']) ? esc_attr($seo['language']) : 'en';
+?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo $lang_attr; ?>"<?php if (!empty($seo['language'])): ?> hreflang="<?php echo $lang_attr; ?>"<?php endif; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo esc_html($profile_name); ?> - Links</title>
+    <title><?php echo $page_title; ?></title>
+
+    <!-- SEO Meta Tags -->
+    <?php if ($seo['indexable']): ?>
+    <meta name="robots" content="index, follow">
+    <?php else: ?>
     <meta name="robots" content="noindex, nofollow">
+    <?php endif; ?>
+    <meta name="description" content="<?php echo esc_attr($meta_description); ?>">
+    <link rel="canonical" href="<?php echo esc_url($seo['canonical_url']); ?>">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<?php echo esc_url($seo['canonical_url']); ?>">
+    <meta property="og:title" content="<?php echo esc_attr($profile_name); ?>">
+    <meta property="og:description" content="<?php echo esc_attr($meta_description); ?>">
+    <meta property="og:site_name" content="<?php echo esc_attr($seo['site_name']); ?>">
+    <?php if (!empty($seo['og_image'])): ?>
+    <meta property="og:image" content="<?php echo esc_url($seo['og_image']); ?>">
+    <meta property="og:image:alt" content="<?php echo esc_attr($profile_name); ?>">
+    <?php endif; ?>
+    <?php if (!empty($seo['language'])): ?>
+    <meta property="og:locale" content="<?php echo esc_attr(str_replace('-', '_', $seo['language'])); ?>">
+    <?php endif; ?>
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="<?php echo !empty($seo['og_image']) ? 'summary_large_image' : 'summary'; ?>">
+    <meta name="twitter:title" content="<?php echo esc_attr($profile_name); ?>">
+    <meta name="twitter:description" content="<?php echo esc_attr($meta_description); ?>">
+    <?php if (!empty($seo['og_image'])): ?>
+    <meta name="twitter:image" content="<?php echo esc_url($seo['og_image']); ?>">
+    <?php endif; ?>
+
+    <!-- Geographic Meta Tags -->
+    <?php if (!empty($seo['geo_region'])): ?>
+    <meta name="geo.region" content="<?php echo esc_attr($seo['geo_region']); ?>">
+    <?php endif; ?>
+    <?php if (!empty($seo['geo_placename'])): ?>
+    <meta name="geo.placename" content="<?php echo esc_attr($seo['geo_placename']); ?>">
+    <?php endif; ?>
+
+    <!-- Schema.org JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    <?php
+    $schema = array(
+        '@context' => 'https://schema.org',
+        '@type' => $seo['schema_type'],
+        'name' => $profile_name,
+        'url' => $seo['canonical_url'],
+    );
+
+    // Add description if available
+    if (!empty($profile_bio)) {
+        $schema['description'] = $profile_bio;
+    }
+
+    // Add image if available
+    if (!empty($seo['og_image'])) {
+        $schema['image'] = $seo['og_image'];
+    }
+
+    // Add location if available
+    if (!empty($seo['schema_location']) || !empty($seo['schema_country'])) {
+        $address = array('@type' => 'PostalAddress');
+        if (!empty($seo['schema_location'])) {
+            $address['addressLocality'] = $seo['schema_location'];
+        }
+        if (!empty($seo['schema_country'])) {
+            $address['addressCountry'] = $seo['schema_country'];
+        }
+        $schema['address'] = $address;
+    }
+
+    // Add sameAs links (all the linktree links)
+    if (!empty($links)) {
+        $same_as = array();
+        foreach ($links as $link) {
+            if (!empty($link['url'])) {
+                $same_as[] = $link['url'];
+            }
+        }
+        if (!empty($same_as)) {
+            $schema['sameAs'] = $same_as;
+        }
+    }
+
+    echo json_encode($schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    ?>
+    </script>
+
     <style>
         :root {
             --bg-color: #ffffff;

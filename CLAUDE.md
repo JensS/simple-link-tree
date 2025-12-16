@@ -8,7 +8,7 @@ Simple Linktree is a minimalist **ClassicPress plugin** that creates a "link-in-
 
 **IMPORTANT**: This plugin is designed primarily for **ClassicPress**. WordPress compatibility is maintained where possible, but ClassicPress compatibility is the priority. Never use WordPress-specific features (like Gutenberg blocks) or deprecated libraries (like jQuery UI Sortable).
 
-**Current Version**: 1.0.1
+**Current Version**: 1.2.0 (check `SIMPLE_LINKTREE_VERSION` constant in simple-linktree.php)
 
 ## Architecture
 
@@ -49,7 +49,7 @@ Admin saves links → AJAX request → Nonce validation → Sanitize data
 The plugin uses **SortableJS** (not jQuery UI Sortable) for drag-and-drop functionality. This is critical because ClassicPress deprecated jQuery UI Sortable.
 
 ```php
-// In simple-linktree.php:114-125
+// In simple-linktree.php enqueue_admin_scripts():
 wp_register_script('sortable', 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js', array(), '1.15.0', true);
 wp_enqueue_script('sortable');
 wp_enqueue_script('slt-admin-js', SIMPLE_LINKTREE_PLUGIN_URL . 'admin/js/admin.js', array('jquery', 'sortable'), SIMPLE_LINKTREE_VERSION, true);
@@ -66,7 +66,7 @@ When the custom slug is updated:
 
 This happens in:
 - `activate()` - Plugin activation
-- `admin_page()` - When settings form submitted (`simple-linktree.php:155-162`)
+- `admin_page()` - When settings form submitted (calls `flush_rewrite_rules()` after updating slug option)
 
 ### Options Storage Structure
 
@@ -208,7 +208,7 @@ public function ajax_save_links() {
 **Critical considerations**:
 - This is a **complete HTML document** (includes `<!DOCTYPE html>`, `<head>`, `<body>`)
 - CSS is embedded in `<style>` tags (no external stylesheet)
-- **No JavaScript should be added** - keep it pure HTML/CSS for performance
+- Contains **minimal JavaScript** only for GDPR-compliant click tracking (uses `navigator.sendBeacon()`)
 - Must manually escape all PHP output: `<?php echo esc_html($profile_name); ?>`
 - Dark mode uses `@media (prefers-color-scheme: dark)` - do not use JavaScript toggles
 
@@ -328,7 +328,7 @@ ClassicPress deprecated jQuery UI Sortable, making it unavailable. This is why w
 **Public page performance**:
 - Single HTTP request for HTML
 - ~5KB embedded CSS (no external stylesheet)
-- Zero JavaScript
+- Minimal inline JavaScript (~30 lines for click tracking only)
 - No theme assets loaded (complete bypass)
 - No database queries on page load (data loaded once in `render_linktree_page()`)
 
@@ -350,7 +350,7 @@ The plugin uses **Yahnis Elsts' Plugin Update Checker** to provide automatic upd
 
 ### Update Configuration
 
-Located in `simple-linktree.php` lines 27-37:
+Located at the top of `simple-linktree.php` (after the constants):
 
 ```php
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
@@ -368,10 +368,11 @@ $updateChecker->setBranch('master');  // Branch to check for updates
 
 To release a new version:
 
-1. **Update version number** in `simple-linktree.php` (lines 6 and 20)
-2. **Commit changes** with descriptive message
-3. **Push to master branch** on GitHub
-4. Plugin installations will automatically detect the update within 12 hours
+1. **Update version number** in `simple-linktree.php` (plugin header Version: and SIMPLE_LINKTREE_VERSION constant)
+2. **Update version** in CLAUDE.md Project Overview section
+3. **Commit changes** with descriptive message
+4. **Push to master branch** on GitHub
+5. Plugin installations will automatically detect the update within 12 hours
 
 **No need to create GitHub releases or tags** - the update checker works directly from branch commits.
 
@@ -416,12 +417,12 @@ CREATE TABLE wp_slt_stats (
 ### Architecture
 
 **Page View Tracking:**
-- Triggered in `render_linktree_page()` method (simple-linktree.php:378)
+- Triggered in `render_linktree_page()` method
 - Calls `track_event('view')` before rendering template
 - One view per unique visitor per day (using IP hash with daily salt)
 
 **Click Tracking:**
-- JavaScript in `public/views/linktree-page.php` (lines 217-246)
+- JavaScript at the bottom of `public/views/linktree-page.php`
 - Uses `navigator.sendBeacon()` API for reliable tracking
 - Sends AJAX request to `wp_ajax_slt_track_click` handler
 - Tracked on click, doesn't delay navigation
@@ -448,7 +449,7 @@ This means the same visitor cannot be tracked across days, ensuring privacy.
 
 ### Statistics Display
 
-Admin panel shows (simple-linktree.php:172-196, admin/views/admin-page.php:91-173):
+Admin panel shows (in `admin/views/admin-page.php`):
 
 **Overview Metrics:**
 - Total page views
@@ -482,7 +483,7 @@ This prevents errors if plugin is updated but not reactivated (table creation ha
 ```php
 // Action: slt_track_click
 // Parameters: link_id
-// Handler: ajax_track_click() (simple-linktree.php:244-254)
+// Handler: ajax_track_click() in Simple_Linktree class
 ```
 
 No nonce required since:
@@ -492,10 +493,83 @@ No nonce required since:
 
 ### CSS Styling
 
-Statistics section styles in `admin/css/admin.css` (lines 174-289):
+Statistics section styles in `admin/css/admin.css`:
 - Grid layout for stat boxes
 - Responsive design (stacks on mobile)
 - WordPress admin theme integration
+
+## SEO & GEO Optimization
+
+The plugin includes comprehensive SEO and geographic targeting features, all configurable via the admin panel.
+
+### SEO Features
+
+**Meta Tags (in public template head):**
+- Conditional robots meta tag (index/noindex based on admin setting)
+- Meta description (auto-generated from bio if not set)
+- Canonical URL
+
+**Open Graph Tags:**
+- `og:type`, `og:url`, `og:title`, `og:description`, `og:site_name`
+- `og:image` and `og:image:alt` (when image URL configured)
+- `og:locale` (derived from language setting)
+
+**Twitter Card Tags:**
+- `twitter:card` (summary_large_image when image set, otherwise summary)
+- `twitter:title`, `twitter:description`, `twitter:image`
+
+### GEO Features
+
+**Language Targeting:**
+- `lang` attribute on `<html>` element
+- `hreflang` attribute for language/region targeting
+- `og:locale` for social sharing
+
+**Geographic Meta Tags:**
+- `geo.region` - ISO 3166 region code (e.g., US-CA)
+- `geo.placename` - City/location name
+
+### Schema.org Structured Data
+
+JSON-LD structured data is dynamically generated with:
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Person|Organization",
+  "name": "Profile Name",
+  "url": "canonical URL",
+  "description": "Profile bio",
+  "image": "OG image URL",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "City",
+    "addressCountry": "Country"
+  },
+  "sameAs": ["array of all link URLs"]
+}
+```
+
+**Key features:**
+- Entity type configurable (Person or Organization)
+- Location data in PostalAddress format
+- All linktree links added as `sameAs` property (establishes social profile connections)
+
+### Admin Settings
+
+SEO/GEO options stored in `wp_options`:
+
+| Option | Description |
+|--------|-------------|
+| `slt_seo_indexable` | Allow search engine indexing (1/0) |
+| `slt_meta_description` | Custom meta description |
+| `slt_og_image` | Social share image URL |
+| `slt_language` | ISO 639-1 language code |
+| `slt_geo_region` | ISO 3166 region code |
+| `slt_geo_placename` | City/location name |
+| `slt_schema_type` | Person or Organization |
+| `slt_schema_location` | City for Schema.org |
+| `slt_schema_country` | Country for Schema.org |
 
 ## Repository Information
 
