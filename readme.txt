@@ -4,7 +4,7 @@ Tags: linktree, link in bio, links page, social links, bio link
 Requires at least: 4.9
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -92,6 +92,11 @@ Yes! The plugin includes configurable SEO settings including:
 
 == Changelog ==
 
+= 1.2.2 =
+* Fixed: Update checker now uses GitHub releases instead of branch commits
+* Fixed: Added sanitize_callback to all register_setting() calls (WordPress.org requirement)
+* Added: Custom sanitization functions for links JSON, checkbox, and schema type fields
+
 = 1.2.1 =
 * Prepared for WordPress.org and ClassicPress directory submission
 * Documentation updates
@@ -122,6 +127,9 @@ Yes! The plugin includes configurable SEO settings including:
 * Mobile responsive design
 
 == Upgrade Notice ==
+
+= 1.2.2 =
+Important fix for automatic updates and WordPress.org compliance. All settings now have proper sanitization.
 
 = 1.2.1 =
 Maintenance release preparing for plugin directory submission.

@@ -3,7 +3,7 @@
  * Plugin Name: Simple Linktree
  * Plugin URI: https://github.com/JensS/simple-link-tree
  * Description: A minimalist Linktree-style page with dark/light mode support
- * Version: 1.2.1
+ * Version: 1.2.2
  * Author: Jens Sage
  * Author URI: https://www.jenssage.com
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SIMPLE_LINKTREE_VERSION', '1.2.1');
+define('SIMPLE_LINKTREE_VERSION', '1.2.2');
 define('SIMPLE_LINKTREE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SIMPLE_LINKTREE_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -33,7 +33,8 @@ if (file_exists(SIMPLE_LINKTREE_PLUGIN_DIR . 'vendor/autoload.php')) {
             __FILE__,
             'simple-linktree'
         );
-        $updateChecker->setBranch('master');
+        // Use GitHub releases instead of branch commits for version detection
+        $updateChecker->getVcsApi()->enableReleaseAssets();
     }
 }
 
@@ -173,21 +174,117 @@ class Simple_Linktree {
     }
     
     public function register_settings() {
-        register_setting('slt_settings', 'slt_page_slug');
-        register_setting('slt_settings', 'slt_links');
-        register_setting('slt_settings', 'slt_profile_name');
-        register_setting('slt_settings', 'slt_profile_bio');
+        register_setting('slt_settings', 'slt_page_slug', array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_title',
+            'default' => 'links',
+        ));
+        register_setting('slt_settings', 'slt_links', array(
+            'type' => 'string',
+            'sanitize_callback' => array($this, 'sanitize_links_json'),
+            'default' => '[]',
+        ));
+        register_setting('slt_settings', 'slt_profile_name', array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_text_field',
+            'default' => '',
+        ));
+        register_setting('slt_settings', 'slt_profile_bio', array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_textarea_field',
+            'default' => '',
+        ));
 
         // SEO/GEO settings
-        register_setting('slt_settings', 'slt_seo_indexable');
-        register_setting('slt_settings', 'slt_meta_description');
-        register_setting('slt_settings', 'slt_og_image');
-        register_setting('slt_settings', 'slt_language');
-        register_setting('slt_settings', 'slt_geo_region');
-        register_setting('slt_settings', 'slt_geo_placename');
-        register_setting('slt_settings', 'slt_schema_type');
-        register_setting('slt_settings', 'slt_schema_location');
-        register_setting('slt_settings', 'slt_schema_country');
+        register_setting('slt_settings', 'slt_seo_indexable', array(
+            'type' => 'string',
+            'sanitize_callback' => array($this, 'sanitize_checkbox'),
+            'default' => '0',
+        ));
+        register_setting('slt_settings', 'slt_meta_description', array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_textarea_field',
+            'default' => '',
+        ));
+        register_setting('slt_settings', 'slt_og_image', array(
+            'type' => 'string',
+            'sanitize_callback' => 'esc_url_raw',
+            'default' => '',
+        ));
+        register_setting('slt_settings', 'slt_language', array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_text_field',
+            'default' => 'en',
+        ));
+        register_setting('slt_settings', 'slt_geo_region', array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_text_field',
+            'default' => '',
+        ));
+        register_setting('slt_settings', 'slt_geo_placename', array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_text_field',
+            'default' => '',
+        ));
+        register_setting('slt_settings', 'slt_schema_type', array(
+            'type' => 'string',
+            'sanitize_callback' => array($this, 'sanitize_schema_type'),
+            'default' => 'Person',
+        ));
+        register_setting('slt_settings', 'slt_schema_location', array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_text_field',
+            'default' => '',
+        ));
+        register_setting('slt_settings', 'slt_schema_country', array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_text_field',
+            'default' => '',
+        ));
+    }
+
+    /**
+     * Sanitize checkbox value
+     */
+    public function sanitize_checkbox($value) {
+        return ($value === '1' || $value === 1 || $value === true) ? '1' : '0';
+    }
+
+    /**
+     * Sanitize schema type (must be Person or Organization)
+     */
+    public function sanitize_schema_type($value) {
+        $allowed = array('Person', 'Organization');
+        return in_array($value, $allowed, true) ? $value : 'Person';
+    }
+
+    /**
+     * Sanitize links JSON
+     */
+    public function sanitize_links_json($value) {
+        if (empty($value)) {
+            return '[]';
+        }
+
+        $links = json_decode($value, true);
+        if (!is_array($links)) {
+            return '[]';
+        }
+
+        $sanitized = array();
+        foreach ($links as $link) {
+            if (!is_array($link)) {
+                continue;
+            }
+            $sanitized[] = array(
+                'id' => sanitize_text_field($link['id'] ?? ''),
+                'title' => sanitize_text_field($link['title'] ?? ''),
+                'url' => esc_url_raw($link['url'] ?? ''),
+                'icon' => sanitize_text_field($link['icon'] ?? ''),
+            );
+        }
+
+        return wp_json_encode($sanitized);
     }
     
     public function enqueue_admin_scripts($hook) {
