@@ -1,0 +1,31 @@
+# Directories
+.git
+.github
+.claude
+node_modules
+vendor
+
+# Files
+.distignore
+.gitignore
+.editorconfig
+.travis.yml
+.phpcs.xml
+.phpcs.xml.dist
+phpcs.xml
+phpcs.xml.dist
+phpunit.xml
+phpunit.xml.dist
+CLAUDE.md
+README.md
+composer.json
+composer.lock
+package.json
+package-lock.json
+Gruntfile.js
+gulpfile.js
+webpack.config.js
+*.sh
+*.sql
+*.tar.gz
+*.zip

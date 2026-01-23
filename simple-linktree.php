@@ -21,20 +21,21 @@ define('SIMPLE_LINKTREE_VERSION', '1.2.1');
 define('SIMPLE_LINKTREE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SIMPLE_LINKTREE_PLUGIN_URL', plugin_dir_url(__FILE__));
 
-// Load Composer autoloader
-require_once SIMPLE_LINKTREE_PLUGIN_DIR . 'vendor/autoload.php';
+// Load Composer autoloader and GitHub update checker (only for GitHub installs)
+// When installed from WordPress.org or ClassicPress directory, vendor/ won't exist
+// and updates will come from the respective directory instead
+if (file_exists(SIMPLE_LINKTREE_PLUGIN_DIR . 'vendor/autoload.php')) {
+    require_once SIMPLE_LINKTREE_PLUGIN_DIR . 'vendor/autoload.php';
 
-// Initialize plugin update checker
-use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
-
-$updateChecker = PucFactory::buildUpdateChecker(
-    'https://github.com/JensS/simple-link-tree/',
-    __FILE__,
-    'simple-linktree'
-);
-
-// Set the branch to check for updates (main or master)
-$updateChecker->setBranch('master');
+    if (class_exists('YahnisElsts\PluginUpdateChecker\v5\PucFactory')) {
+        $updateChecker = YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+            'https://github.com/JensS/simple-link-tree/',
+            __FILE__,
+            'simple-linktree'
+        );
+        $updateChecker->setBranch('master');
+    }
+}
 
 class Simple_Linktree {
     
