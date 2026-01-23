@@ -302,6 +302,54 @@
                 </div>
             </div>
 
+            <?php if (isset($statistics['device_stats'])): ?>
+            <div class="slt-device-stats">
+                <h3>Device Breakdown</h3>
+                <div class="slt-stats-overview slt-device-grid">
+                    <div class="slt-stat-box slt-stat-mobile">
+                        <div class="slt-stat-icon"><span class="dashicons dashicons-smartphone"></span></div>
+                        <div class="slt-stat-value"><?php echo number_format($statistics['device_stats']['mobile_views']); ?></div>
+                        <div class="slt-stat-label">Mobile Views</div>
+                        <?php if ($statistics['total_views'] > 0): ?>
+                        <div class="slt-stat-percent">
+                            <?php echo number_format(($statistics['device_stats']['mobile_views'] / $statistics['total_views']) * 100, 1); ?>%
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="slt-stat-box slt-stat-desktop">
+                        <div class="slt-stat-icon"><span class="dashicons dashicons-desktop"></span></div>
+                        <div class="slt-stat-value"><?php echo number_format($statistics['device_stats']['desktop_views']); ?></div>
+                        <div class="slt-stat-label">Desktop Views</div>
+                        <?php if ($statistics['total_views'] > 0): ?>
+                        <div class="slt-stat-percent">
+                            <?php echo number_format(($statistics['device_stats']['desktop_views'] / $statistics['total_views']) * 100, 1); ?>%
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="slt-stat-box slt-stat-mobile">
+                        <div class="slt-stat-icon"><span class="dashicons dashicons-smartphone"></span></div>
+                        <div class="slt-stat-value"><?php echo number_format($statistics['device_stats']['mobile_clicks']); ?></div>
+                        <div class="slt-stat-label">Mobile Clicks</div>
+                        <?php if ($statistics['total_clicks'] > 0): ?>
+                        <div class="slt-stat-percent">
+                            <?php echo number_format(($statistics['device_stats']['mobile_clicks'] / $statistics['total_clicks']) * 100, 1); ?>%
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="slt-stat-box slt-stat-desktop">
+                        <div class="slt-stat-icon"><span class="dashicons dashicons-desktop"></span></div>
+                        <div class="slt-stat-value"><?php echo number_format($statistics['device_stats']['desktop_clicks']); ?></div>
+                        <div class="slt-stat-label">Desktop Clicks</div>
+                        <?php if ($statistics['total_clicks'] > 0): ?>
+                        <div class="slt-stat-percent">
+                            <?php echo number_format(($statistics['device_stats']['desktop_clicks'] / $statistics['total_clicks']) * 100, 1); ?>%
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <?php if (!empty($statistics['link_stats'])): ?>
             <div class="slt-stats-table">
                 <h3>Link Performance</h3>

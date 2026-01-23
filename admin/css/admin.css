@@ -327,6 +327,62 @@
     text-decoration: underline;
 }
 
+/* Device Stats */
+.slt-device-stats {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.slt-device-stats h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+.slt-device-grid {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.slt-stat-icon {
+    margin-bottom: 10px;
+}
+
+.slt-stat-icon .dashicons {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    color: #666;
+}
+
+.slt-stat-mobile .slt-stat-icon .dashicons {
+    color: #9b59b6;
+}
+
+.slt-stat-desktop .slt-stat-icon .dashicons {
+    color: #3498db;
+}
+
+.slt-stat-mobile .slt-stat-value {
+    color: #9b59b6;
+}
+
+.slt-stat-desktop .slt-stat-value {
+    color: #3498db;
+}
+
+.slt-stat-percent {
+    font-size: 13px;
+    color: #888;
+    margin-top: 5px;
+}
+
+@media (max-width: 992px) {
+    .slt-device-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 768px) {
     .slt-admin-container {
         flex-direction: column;
@@ -357,5 +413,9 @@
 
     .slt-stat-value {
         font-size: 28px;
+    }
+
+    .slt-device-grid {
+        grid-template-columns: 1fr 1fr;
     }
 }

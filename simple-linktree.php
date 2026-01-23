@@ -3,7 +3,7 @@
  * Plugin Name: Simple Linktree
  * Plugin URI: https://github.com/JensS/simple-link-tree
  * Description: A minimalist Linktree-style page with dark/light mode support
- * Version: 1.2.2
+ * Version: 1.2.3
  * Author: Jens Sage
  * Author URI: https://www.jenssage.com
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SIMPLE_LINKTREE_VERSION', '1.2.2');
+define('SIMPLE_LINKTREE_VERSION', '1.2.3');
 define('SIMPLE_LINKTREE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SIMPLE_LINKTREE_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -145,10 +145,19 @@ class Simple_Linktree {
             link_id varchar(50) DEFAULT NULL,
             event_type varchar(20) NOT NULL,
             event_date date NOT NULL,
+            device_type varchar(10) NOT NULL DEFAULT 'desktop',
             count int(11) NOT NULL DEFAULT 1,
             PRIMARY KEY (id),
-            UNIQUE KEY unique_stat (link_id, event_type, event_date)
+            UNIQUE KEY unique_stat (link_id, event_type, event_date, device_type)
         ) $charset_collate;";
+
+        // Check if we need to add device_type column to existing table
+        $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '$table_name' AND column_name = 'device_type'");
+        if (empty($row)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN device_type varchar(10) NOT NULL DEFAULT 'desktop' AFTER event_date");
+            $wpdb->query("ALTER TABLE $table_name DROP INDEX unique_stat");
+            $wpdb->query("ALTER TABLE $table_name ADD UNIQUE KEY unique_stat (link_id, event_type, event_date, device_type)");
+        }
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
@@ -466,10 +475,13 @@ class Simple_Linktree {
             return; // Table doesn't exist yet, skip tracking
         }
 
+        // Detect device type
+        $device_type = $this->detect_device_type();
+
         // Check if this is a duplicate view/click today (basic bot/refresh protection)
         // Use IP hash with daily salt - no PII stored, hash changes daily
         $ip_hash = $this->get_daily_ip_hash();
-        $cache_key = 'slt_tracked_' . $event_type . '_' . ($link_id ?: 'page') . '_' . $ip_hash;
+        $cache_key = 'slt_tracked_' . $event_type . '_' . ($link_id ?: 'page') . '_' . $device_type . '_' . $ip_hash;
 
         if (get_transient($cache_key)) {
             return; // Already tracked this view/click today
@@ -483,12 +495,13 @@ class Simple_Linktree {
         $event_date = current_time('Y-m-d');
 
         $wpdb->query($wpdb->prepare(
-            "INSERT INTO $table_name (link_id, event_type, event_date, count)
-            VALUES (%s, %s, %s, 1)
+            "INSERT INTO $table_name (link_id, event_type, event_date, device_type, count)
+            VALUES (%s, %s, %s, %s, 1)
             ON DUPLICATE KEY UPDATE count = count + 1",
             $link_id,
             $event_type,
-            $event_date
+            $event_date,
+            $device_type
         ));
     }
 
@@ -502,6 +515,45 @@ class Simple_Linktree {
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         $daily_salt = date('Y-m-d') . AUTH_KEY; // Daily changing salt
         return hash('sha256', $ip . $daily_salt);
+    }
+
+    /**
+     * Detect device type from User-Agent
+     * Returns 'mobile' or 'desktop'
+     *
+     * @return string
+     */
+    private function detect_device_type() {
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
+        // Common mobile device indicators
+        $mobile_patterns = array(
+            '/Mobile/i',
+            '/Android.*Mobile/i',
+            '/iPhone/i',
+            '/iPod/i',
+            '/BlackBerry/i',
+            '/Windows Phone/i',
+            '/webOS/i',
+            '/Opera Mini/i',
+            '/Opera Mobi/i',
+            '/IEMobile/i',
+            '/Mobile Safari/i',
+        );
+
+        foreach ($mobile_patterns as $pattern) {
+            if (preg_match($pattern, $user_agent)) {
+                return 'mobile';
+            }
+        }
+
+        // Check for tablets - these are often considered mobile for analytics
+        // but we'll count iPad/Android tablets as mobile too
+        if (preg_match('/iPad|Android(?!.*Mobile)/i', $user_agent)) {
+            return 'mobile';
+        }
+
+        return 'desktop';
     }
 
     /**
@@ -519,7 +571,13 @@ class Simple_Linktree {
                 'total_views' => 0,
                 'total_clicks' => 0,
                 'link_stats' => array(),
-                'daily_views' => array()
+                'daily_views' => array(),
+                'device_stats' => array(
+                    'mobile_views' => 0,
+                    'desktop_views' => 0,
+                    'mobile_clicks' => 0,
+                    'desktop_clicks' => 0,
+                )
             );
         }
 
@@ -533,6 +591,31 @@ class Simple_Linktree {
         $total_clicks = $wpdb->get_var($wpdb->prepare(
             "SELECT SUM(count) FROM $table_name WHERE event_type = %s",
             'click'
+        ));
+
+        // Get device-specific stats
+        $mobile_views = $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(count) FROM $table_name WHERE event_type = %s AND device_type = %s",
+            'view',
+            'mobile'
+        ));
+
+        $desktop_views = $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(count) FROM $table_name WHERE event_type = %s AND device_type = %s",
+            'view',
+            'desktop'
+        ));
+
+        $mobile_clicks = $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(count) FROM $table_name WHERE event_type = %s AND device_type = %s",
+            'click',
+            'mobile'
+        ));
+
+        $desktop_clicks = $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(count) FROM $table_name WHERE event_type = %s AND device_type = %s",
+            'click',
+            'desktop'
         ));
 
         // Get clicks per link
@@ -574,7 +657,13 @@ class Simple_Linktree {
             'total_views' => intval($total_views),
             'total_clicks' => intval($total_clicks),
             'link_stats' => $link_stats,
-            'daily_views' => $daily_views
+            'daily_views' => $daily_views,
+            'device_stats' => array(
+                'mobile_views' => intval($mobile_views),
+                'desktop_views' => intval($desktop_views),
+                'mobile_clicks' => intval($mobile_clicks),
+                'desktop_clicks' => intval($desktop_clicks),
+            )
         );
     }
     
