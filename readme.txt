@@ -4,7 +4,7 @@ Tags: linktree, link in bio, links page, social links, bio link
 Requires at least: 4.9
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 1.2.3
+Stable tag: 1.2.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -91,6 +91,12 @@ Yes! The plugin includes configurable SEO settings including:
 4. Admin panel - settings and statistics
 
 == Changelog ==
+
+= 1.2.4 =
+* Fixed: Improved escaping in admin and public templates for better security
+* Fixed: Replaced date() with gmdate() for timezone-safe date handling
+* Fixed: Added WordPress coding standards compliance comments
+* Tested: Updated compatibility to WordPress 6.9
 
 = 1.2.3 =
 * Added: Mobile vs Desktop device tracking in statistics
