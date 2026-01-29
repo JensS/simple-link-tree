@@ -303,7 +303,8 @@ class Simple_Linktree {
 
         wp_enqueue_style('slt-admin-css', SIMPLE_LINKTREE_PLUGIN_URL . 'admin/css/admin.css', array(), SIMPLE_LINKTREE_VERSION);
 
-        // Register and enqueue SortableJS from CDN
+        // Register and enqueue SortableJS from CDN.
+        // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- External CDN with version in URL.
         wp_register_script('sortable', 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js', array(), '1.15.0', true);
         wp_enqueue_script('sortable');
 
@@ -513,7 +514,7 @@ class Simple_Linktree {
      */
     private function get_daily_ip_hash() {
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $daily_salt = date('Y-m-d') . AUTH_KEY; // Daily changing salt
+        $daily_salt = gmdate('Y-m-d') . AUTH_KEY; // Daily changing salt
         return hash('sha256', $ip . $daily_salt);
     }
 

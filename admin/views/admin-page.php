@@ -20,7 +20,7 @@
                                 </th>
                                 <td>
                                     <input type="text" id="slt_page_slug" name="slt_page_slug" value="<?php echo esc_attr($slug); ?>" class="regular-text" />
-                                    <p class="description">Your linktree will be accessible at: <strong><?php echo home_url('/'); ?><span id="slug-preview"><?php echo esc_html($slug); ?></span></strong></p>
+                                    <p class="description">Your linktree will be accessible at: <strong><?php echo esc_url(home_url('/')); ?><span id="slug-preview"><?php echo esc_html($slug); ?></span></strong></p>
                                 </td>
                             </tr>
                             <tr>
@@ -395,7 +395,7 @@
                     <tbody>
                         <?php foreach ($statistics['daily_views'] as $daily): ?>
                         <tr>
-                            <td><?php echo esc_html(date('F j, Y', strtotime($daily['event_date']))); ?></td>
+                            <td><?php echo esc_html(gmdate('F j, Y', strtotime($daily['event_date']))); ?></td>
                             <td style="text-align: right;">
                                 <strong><?php echo number_format($daily['views']); ?></strong>
                             </td>

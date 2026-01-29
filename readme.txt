@@ -2,7 +2,7 @@
 Contributors: jenssage
 Tags: linktree, link in bio, links page, social links, bio link
 Requires at least: 4.9
-Tested up to: 6.7
+Tested up to: 6.9
 Requires PHP: 7.0
 Stable tag: 1.2.3
 License: GPLv2 or later

@@ -5,11 +5,11 @@ $page_title = esc_html($profile_name) . ' - Links';
 $lang_attr = !empty($seo['language']) ? esc_attr($seo['language']) : 'en';
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo $lang_attr; ?>"<?php if (!empty($seo['language'])): ?> hreflang="<?php echo $lang_attr; ?>"<?php endif; ?>>
+<html lang="<?php echo esc_attr($lang_attr); ?>"<?php if (!empty($seo['language'])): ?> hreflang="<?php echo esc_attr($lang_attr); ?>"<?php endif; ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $page_title; ?></title>
+    <title><?php echo esc_html($page_title); ?></title>
 
     <!-- SEO Meta Tags -->
     <?php if ($seo['indexable']): ?>
