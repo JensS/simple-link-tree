@@ -3,7 +3,7 @@
  * Plugin Name: Simple Linktree
  * Plugin URI: https://github.com/JensS/simple-link-tree
  * Description: A minimalist Linktree-style page with dark/light mode support
- * Version: 1.2.4
+ * Version: 1.3.0
  * Author: Jens Sage
  * Author URI: https://www.jenssage.com
  * License: GPL v2 or later
@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SIMPLE_LINKTREE_VERSION', '1.2.4');
+define('SIMPLE_LINKTREE_VERSION', '1.3.0');
 define('SIMPLE_LINKTREE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SIMPLE_LINKTREE_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -290,6 +290,8 @@ class Simple_Linktree {
                 'title' => sanitize_text_field($link['title'] ?? ''),
                 'url' => esc_url_raw($link['url'] ?? ''),
                 'icon' => sanitize_text_field($link['icon'] ?? ''),
+                'schedule_start' => sanitize_text_field($link['schedule_start'] ?? ''),
+                'schedule_end' => sanitize_text_field($link['schedule_end'] ?? ''),
             );
         }
 
@@ -399,10 +401,12 @@ class Simple_Linktree {
                 'id' => sanitize_text_field($link['id']),
                 'title' => sanitize_text_field($link['title']),
                 'url' => esc_url_raw($link['url']),
-                'icon' => sanitize_text_field($link['icon'])
+                'icon' => sanitize_text_field($link['icon']),
+                'schedule_start' => sanitize_text_field($link['schedule_start'] ?? ''),
+                'schedule_end' => sanitize_text_field($link['schedule_end'] ?? ''),
             );
         }
-        
+
         update_option('slt_links', json_encode($sanitized_links));
         wp_send_json_success('Links saved successfully');
     }
@@ -681,7 +685,19 @@ class Simple_Linktree {
 
         $profile_name = get_option('slt_profile_name', get_bloginfo('name'));
         $profile_bio = get_option('slt_profile_bio', '');
-        $links = json_decode(get_option('slt_links', '[]'), true);
+        $all_links = json_decode(get_option('slt_links', '[]'), true);
+
+        // Filter links by schedule
+        $now = current_time('Y-m-d\TH:i');
+        $links = array_values(array_filter($all_links, function($link) use ($now) {
+            if (!empty($link['schedule_start']) && $now < $link['schedule_start']) {
+                return false;
+            }
+            if (!empty($link['schedule_end']) && $now > $link['schedule_end']) {
+                return false;
+            }
+            return true;
+        }));
 
         // SEO/GEO data for template
         $slug = get_option('slt_page_slug', 'links');

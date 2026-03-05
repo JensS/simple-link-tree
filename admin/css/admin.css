@@ -122,6 +122,19 @@
     max-width: 200px;
 }
 
+.slt-link-schedule {
+    display: flex;
+    gap: 10px;
+}
+
+.slt-link-date-field {
+    flex: 1;
+}
+
+.slt-link-date-field input {
+    font-size: 13px;
+}
+
 .slt-link-actions {
     display: flex;
     align-items: center;
@@ -405,6 +418,10 @@
 
     .slt-link-icon-field {
         max-width: 100%;
+    }
+
+    .slt-link-schedule {
+        flex-direction: column;
     }
 
     .slt-stats-overview {

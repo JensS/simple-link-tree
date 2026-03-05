@@ -34,6 +34,10 @@ jQuery(document).ready(function($) {
                 '<div class="slt-link-field"><label>Title</label><input type="text" class="link-title" value="" placeholder="Link Title" /></div>' +
                 '<div class="slt-link-field"><label>URL</label><input type="url" class="link-url" value="" placeholder="https://example.com" /></div>' +
                 '<div class="slt-link-field slt-link-icon-field"><label>Icon (optional)</label><input type="text" class="link-icon" value="" placeholder="e.g., 🔗 or emoji" /></div>' +
+                '<div class="slt-link-schedule">' +
+                    '<div class="slt-link-field slt-link-date-field"><label>Visible from (optional)</label><input type="datetime-local" class="link-schedule-start" value="" /></div>' +
+                    '<div class="slt-link-field slt-link-date-field"><label>Visible until (optional)</label><input type="datetime-local" class="link-schedule-end" value="" /></div>' +
+                '</div>' +
             '</div>' +
             '<div class="slt-link-actions"><button type="button" class="button delete-link-btn" title="Delete"><span class="dashicons dashicons-trash"></span></button></div>' +
         '</div>');
@@ -77,7 +81,9 @@ jQuery(document).ready(function($) {
                 id: $item.data('id'),
                 title: $item.find('.link-title').val().trim(),
                 url: $item.find('.link-url').val().trim(),
-                icon: $item.find('.link-icon').val().trim()
+                icon: $item.find('.link-icon').val().trim(),
+                schedule_start: $item.find('.link-schedule-start').val().trim(),
+                schedule_end: $item.find('.link-schedule-end').val().trim()
             };
             
             // Only add links with at least a title and URL

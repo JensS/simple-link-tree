@@ -256,6 +256,16 @@
                                     <label>Icon (optional)</label>
                                     <input type="text" class="link-icon" value="<?php echo esc_attr($link['icon']); ?>" placeholder="e.g., 🔗 or emoji" />
                                 </div>
+                                <div class="slt-link-schedule">
+                                    <div class="slt-link-field slt-link-date-field">
+                                        <label>Visible from (optional)</label>
+                                        <input type="datetime-local" class="link-schedule-start" value="<?php echo esc_attr($link['schedule_start'] ?? ''); ?>" />
+                                    </div>
+                                    <div class="slt-link-field slt-link-date-field">
+                                        <label>Visible until (optional)</label>
+                                        <input type="datetime-local" class="link-schedule-end" value="<?php echo esc_attr($link['schedule_end'] ?? ''); ?>" />
+                                    </div>
+                                </div>
                             </div>
                             <div class="slt-link-actions">
                                 <button type="button" class="button delete-link-btn" title="Delete">
